@@ -33,7 +33,6 @@ import os
 
 
 
-
 # flask setup
 jwt = JWTManager()
 app = Flask(__name__, static_folder="static")
@@ -142,8 +141,6 @@ def normalize_to_crore(extracted_data: ExtractedValue) -> float:
 
 
 # financial shit 
-# Add this function to your app.py file
-
 def calculate_kpis(data: FinancialReportData) -> dict:
     kpis = {}
 
@@ -164,14 +161,13 @@ def calculate_kpis(data: FinancialReportData) -> dict:
     if monthly_cash_flow < 0:
         kpis['monthly_burn_rate'] = abs(round(monthly_cash_flow, 2))
     else:
-        kpis['monthly_burn_rate'] = 0 # Not burning cash
+        kpis['monthly_burn_rate'] = 0 
 
 
     if kpis['monthly_burn_rate'] > 0:
         runway = data.cash_reserves / kpis['monthly_burn_rate']
         kpis['runway_months'] = round(runway, 2)
     else:
-        # If not burning cash, runway is effectively infinite
         kpis['runway_months'] = float('inf') 
 
     if data.total_current_liabilities > 0:
@@ -402,7 +398,6 @@ def dashboard():
 
     return result.content
    
-
 
 
 
