@@ -329,79 +329,82 @@ def upload_page():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    file_path = session.pop('uploaded_file_path')
+    if file_path.endswith('.pdf'):
+        print("Loading pre-built FAISS index...")
+        vector_store = FAISS.load_local(
+            FAISS_INDEX_PATH,
+            embedding_model,
+            allow_dangerous_deserialization=True
+        )
+        retriever = vector_store.as_retriever(search_kwargs={'k': 5})
+        print("Index loaded successfully.")
 
-    print("Loading pre-built FAISS index...")
-    vector_store = FAISS.load_local(
-        FAISS_INDEX_PATH,
-        embedding_model,
-        allow_dangerous_deserialization=True
-    )
-    retriever = vector_store.as_retriever(search_kwargs={'k': 5})
-    print("Index loaded successfully.")
+        questions = {
+            "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
+            "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
+            "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
+            "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
+            "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
+            "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
+            "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
+            "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
+            "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
+            "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
+            "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
+        }
 
-    questions = {
-        "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
-        "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
-        "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
-        "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
-        "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
-        "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
-        "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
-        "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
-        "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
-        "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
-        "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
-    }
-
-    extracted_answers = {"company_name": str(current_user.company_name)}
-    
-    extraction_model = model.with_structured_output(ExtractedValue)
-    extraction_prompt = PromptTemplate.from_template(
-        """Based ONLY on the following CONTEXT, extract the value and unit for the requested metric.
-           - Pay close attention to words like "loss" or numbers in parentheses like (971). These indicate a negative number, and you MUST return a negative value (e.g., -971).
-
-        CONTEXT:
-        {context}
+        extracted_answers = {"company_name": str(current_user.company_name)}
         
-        METRIC:
-        {question}
-        """
-    )
-    extraction_chain = extraction_prompt | extraction_model
+        extraction_model = model.with_structured_output(ExtractedValue)
+        extraction_prompt = PromptTemplate.from_template(
+            """Based ONLY on the following CONTEXT, extract the value and unit for the requested metric.
+            - Pay close attention to words like "loss" or numbers in parentheses like (971). These indicate a negative number, and you MUST return a negative value (e.g., -971).
 
-    for key, question in questions.items():
-        print(f"Processing: {key}...")
-        
-        if key in [ "fiscal_year"]:
+            CONTEXT:
+            {context}
+            
+            METRIC:
+            {question}
+            """
+        )
+        extraction_chain = extraction_prompt | extraction_model
+
+        for key, question in questions.items():
+            print(f"Processing: {key}...")
+            
+            if key in [ "fiscal_year"]:
+                retrieved_docs = retriever.invoke(question)
+                context_string = format_docs(retrieved_docs)
+                simple_chain = PromptTemplate.from_template("From the context: {context}, answer the question: {question}. Respond with only the answer.") | model | StrOutputParser()
+                answer = simple_chain.invoke({"context": context_string, "question": question})
+                extracted_answers[key] = answer
+                print(f"  -> Raw Text Answer: '{answer}'")
+                continue
+
             retrieved_docs = retriever.invoke(question)
             context_string = format_docs(retrieved_docs)
-            simple_chain = PromptTemplate.from_template("From the context: {context}, answer the question: {question}. Respond with only the answer.") | model | StrOutputParser()
-            answer = simple_chain.invoke({"context": context_string, "question": question})
-            extracted_answers[key] = answer
-            print(f"  -> Raw Text Answer: '{answer}'")
-            continue
+            
+            raw_extracted_data = extraction_chain.invoke({
+                "context": context_string,
+                "question": question
+            })
+            print(f"  -> Raw Extracted Data: {raw_extracted_data}")
+            
+            normalized_value = normalize_to_crore(raw_extracted_data)
+            print(f"  -> Normalized Value (in Crores): {normalized_value}")
+            
+            extracted_answers[key] = normalized_value
 
-        retrieved_docs = retriever.invoke(question)
-        context_string = format_docs(retrieved_docs)
-        
-        raw_extracted_data = extraction_chain.invoke({
-            "context": context_string,
-            "question": question
-        })
-        print(f"  -> Raw Extracted Data: {raw_extracted_data}")
-        
-        normalized_value = normalize_to_crore(raw_extracted_data)
-        print(f"  -> Normalized Value (in Crores): {normalized_value}")
-        
-        extracted_answers[key] = normalized_value
+        final_data = FinancialReportData(**extracted_answers)
 
-    final_data = FinancialReportData(**extracted_answers)
+        kpis = calculate_kpis(final_data)
 
-    kpis = calculate_kpis(final_data)
+        result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
 
-    result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
-
-    return result.content
+        return result.content
+    else:
+        return 'none'
    
 
 
