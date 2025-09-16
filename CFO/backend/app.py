@@ -113,7 +113,6 @@ class ExtractedValue(BaseModel):
     value: float = Field(description="The numerical value extracted from the text, ignoring commas.")
     unit: Literal['crore', 'lakh', 'thousand', 'none'] = Field(description="The unit associated with the value. If no unit, use 'none'.")
 
-# The Python function for reliable math
 def normalize_to_crore(extracted_data: ExtractedValue) -> float:
     """Converts an ExtractedValue object to a float in crores."""
     if not extracted_data or extracted_data.value is None:
@@ -127,11 +126,10 @@ def normalize_to_crore(extracted_data: ExtractedValue) -> float:
     elif unit == 'thousand':
         return value / 100000.0
     elif unit == 'none':
-        # Handles raw numbers like 95,000; assumes it's not in crores
-        if value > 100000: # Heuristic: large raw numbers are likely not crores
+        if value > 100000: 
              return value / 10000000.0
     
-    return value # Assumes the unit is 'crore' or a raw number already in crores
+    return value
 
 
 
