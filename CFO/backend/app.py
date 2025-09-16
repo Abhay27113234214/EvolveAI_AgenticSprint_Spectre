@@ -292,7 +292,7 @@ def login():
 @app.route("/home") 
 @login_required
 def home():
-    return redirect(url_for("dashboard"))
+    return render_template('home.html')
 
 
 @app.route("/upload_annual_report", methods=['POST'])
