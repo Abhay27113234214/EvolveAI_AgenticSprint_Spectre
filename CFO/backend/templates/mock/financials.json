@@ -1,0 +1,443 @@
+{
+  "success": true,
+  "message": "Mock financial data loaded successfully",
+  "last_updated": "2024-09-15T18:25:49Z",
+  "data": {
+    "revenue": {
+      "current": 2500000,
+      "previous": 2200000,
+      "growth": 0.136,
+      "trend": "positive"
+    },
+    "expenses": {
+      "current": 1800000,
+      "previous": 1650000,
+      "growth": 0.091,
+      "trend": "controlled"
+    },
+    "profit_loss": {
+      "current": 700000,
+      "previous": 550000,
+      "growth": 0.273,
+      "trend": "positive"
+    },
+    "burn_rate": {
+      "monthly": 150000,
+      "quarterly": 450000,
+      "annual": 1800000,
+      "trend": "stable"
+    },
+    "cash_position": {
+      "current": 8500000,
+      "previous": 7800000,
+      "change": 700000,
+      "trend": "positive"
+    },
+    "cash_runway": {
+      "months": 56.7,
+      "status": "healthy",
+      "trend": "improving"
+    },
+    "liabilities": {
+      "current": 1200000,
+      "long_term": 800000,
+      "short_term": 400000,
+      "debt_to_equity": 0.14
+    },
+    "kpis": [
+      {
+        "id": "revenue",
+        "label": "Monthly Revenue",
+        "value": 2500000,
+        "formatted": "$2.5M",
+        "change": 13.6,
+        "trend": "positive",
+        "status": "good"
+      },
+      {
+        "id": "burn_rate",
+        "label": "Burn Rate",
+        "value": 150000,
+        "formatted": "$150K",
+        "change": -2.1,
+        "trend": "improving",
+        "status": "good"
+      },
+      {
+        "id": "runway",
+        "label": "Cash Runway",
+        "value": 56.7,
+        "formatted": "57 months",
+        "change": 8.2,
+        "trend": "improving",
+        "status": "excellent"
+      },
+      {
+        "id": "profit_margin",
+        "label": "Profit Margin",
+        "value": 0.28,
+        "formatted": "28%",
+        "change": 5.4,
+        "trend": "positive",
+        "status": "good"
+      }
+    ],
+    "charts": {
+      "cash_flow": [
+        { "month": "Mar 2024", "inflow": 2200000, "outflow": 1650000, "net": 550000 },
+        { "month": "Apr 2024", "inflow": 2300000, "outflow": 1680000, "net": 620000 },
+        { "month": "May 2024", "inflow": 2400000, "outflow": 1720000, "net": 680000 },
+        { "month": "Jun 2024", "inflow": 2450000, "outflow": 1750000, "net": 700000 },
+        { "month": "Jul 2024", "inflow": 2500000, "outflow": 1780000, "net": 720000 },
+        { "month": "Aug 2024", "inflow": 2550000, "outflow": 1800000, "net": 750000 },
+        { "month": "Sep 2024", "inflow": 2500000, "outflow": 1800000, "net": 700000 }
+      ],
+      "revenue_trend": [
+        { "month": "Oct 2023", "revenue": 1800000, "target": 1900000 },
+        { "month": "Nov 2023", "revenue": 1850000, "target": 1950000 },
+        { "month": "Dec 2023", "revenue": 1900000, "target": 2000000 },
+        { "month": "Jan 2024", "revenue": 1950000, "target": 2050000 },
+        { "month": "Feb 2024", "revenue": 2100000, "target": 2100000 },
+        { "month": "Mar 2024", "revenue": 2200000, "target": 2150000 },
+        { "month": "Apr 2024", "revenue": 2300000, "target": 2200000 },
+        { "month": "May 2024", "revenue": 2400000, "target": 2250000 },
+        { "month": "Jun 2024", "revenue": 2450000, "target": 2300000 },
+        { "month": "Jul 2024", "revenue": 2500000, "target": 2350000 },
+        { "month": "Aug 2024", "revenue": 2550000, "target": 2400000 },
+        { "month": "Sep 2024", "revenue": 2500000, "target": 2450000 }
+      ]
+    },
+    "balance_sheet": {
+      "assets": {
+        "cash": 8500000,
+        "accounts_receivable": 850000,
+        "inventory": 450000,
+        "equipment": 1200000,
+        "total": 11000000
+      },
+      "liabilities": {
+        "accounts_payable": 400000,
+        "short_term_debt": 300000,
+        "long_term_debt": 800000,
+        "total": 1500000
+      },
+      "equity": {
+        "total": 9500000
+      }
+    },
+    "recent_activities": [
+      {
+        "id": "1",
+        "type": "revenue",
+        "description": "Large enterprise contract signed",
+        "amount": 500000,
+        "date": "2024-09-10T10:30:00Z",
+        "impact": "positive"
+      },
+      {
+        "id": "2",
+        "type": "expense",
+        "description": "Q3 marketing campaign expenses",
+        "amount": -180000,
+        "date": "2024-09-08T14:15:00Z",
+        "impact": "neutral"
+      },
+      {
+        "id": "3",
+        "type": "investment",
+        "description": "Series B funding received",
+        "amount": 2000000,
+        "date": "2024-09-01T09:00:00Z",
+        "impact": "positive"
+      },
+      {
+        "id": "4",
+        "type": "expense",
+        "description": "New office lease deposit",
+        "amount": -75000,
+        "date": "2024-08-28T16:45:00Z",
+        "impact": "neutral"
+      }
+    ]
+  },
+  "risks": {
+    "overview": {
+      "total_risks": 12,
+      "high_priority": 2,
+      "medium_priority": 5,
+      "low_priority": 5,
+      "risk_score": 65,
+      "trend": "stable"
+    },
+    "active_alerts": [
+      {
+        "id": "risk_001",
+        "title": "Customer Concentration Risk",
+        "description": "Top 3 customers represent 45% of total revenue, creating dependency risk",
+        "severity": "high",
+        "category": "financial",
+        "impact": "High revenue loss if key customers churn",
+        "probability": 0.25,
+        "mitigation": "Diversify customer base and strengthen key account relationships",
+        "due_date": "2024-12-31",
+        "status": "active"
+      },
+      {
+        "id": "risk_002",
+        "title": "Rising Operational Costs",
+        "description": "Operating expenses increased 12% quarter-over-quarter",
+        "severity": "medium",
+        "category": "operational",
+        "impact": "Reduced profit margins and cash flow pressure",
+        "probability": 0.65,
+        "mitigation": "Implement cost optimization initiatives and renegotiate vendor contracts",
+        "due_date": "2024-11-15",
+        "status": "active"
+      },
+      {
+        "id": "risk_003",
+        "title": "Market Competition Intensity",
+        "description": "New competitors entering market with aggressive pricing",
+        "severity": "medium",
+        "category": "market",
+        "impact": "Potential pricing pressure and market share loss",
+        "probability": 0.55,
+        "mitigation": "Enhance product differentiation and value proposition",
+        "due_date": "2024-10-30",
+        "status": "active"
+      }
+    ],
+    "categories": {
+      "financial": [
+        {
+          "id": "fin_001",
+          "title": "Customer Concentration Risk",
+          "severity": "high",
+          "description": "Heavy reliance on top customers for revenue",
+          "trend": "stable"
+        },
+        {
+          "id": "fin_002",
+          "title": "Cash Flow Seasonality",
+          "severity": "medium",
+          "description": "Q4 typically shows reduced cash inflows",
+          "trend": "improving"
+        },
+        {
+          "id": "fin_003",
+          "title": "Foreign Exchange Exposure",
+          "severity": "low",
+          "description": "15% of revenue in foreign currencies",
+          "trend": "stable"
+        }
+      ],
+      "operational": [
+        {
+          "id": "op_001",
+          "title": "Rising Operational Costs",
+          "severity": "medium",
+          "description": "Increased expenses across multiple categories",
+          "trend": "worsening"
+        },
+        {
+          "id": "op_002",
+          "title": "Key Personnel Dependency",
+          "severity": "medium",
+          "description": "Critical roles lack succession planning",
+          "trend": "stable"
+        },
+        {
+          "id": "op_003",
+          "title": "Supply Chain Disruption",
+          "severity": "low",
+          "description": "Single-source suppliers for key components",
+          "trend": "improving"
+        }
+      ],
+      "market": [
+        {
+          "id": "mkt_001",
+          "title": "Market Competition Intensity",
+          "severity": "medium",
+          "description": "Increasing competitive pressure",
+          "trend": "worsening"
+        },
+        {
+          "id": "mkt_002",
+          "title": "Economic Downturn Impact",
+          "severity": "low",
+          "description": "Potential recession affecting demand",
+          "trend": "stable"
+        }
+      ],
+      "compliance": [
+        {
+          "id": "comp_001",
+          "title": "Regulatory Changes",
+          "severity": "low",
+          "description": "New data privacy regulations pending",
+          "trend": "stable"
+        },
+        {
+          "id": "comp_002",
+          "title": "Tax Compliance Updates",
+          "severity": "low",
+          "description": "Multi-state tax filing complexities",
+          "trend": "improving"
+        }
+      ]
+    },
+    "mitigation_recommendations": [
+      {
+        "id": "mit_001",
+        "title": "Diversify Customer Base",
+        "priority": "high",
+        "description": "Reduce dependency on top customers by expanding customer acquisition",
+        "actions": [
+          "Launch targeted marketing campaigns for mid-market segment",
+          "Develop channel partnerships",
+          "Implement customer success programs to increase retention"
+        ],
+        "timeline": "6 months",
+        "cost_estimate": 150000,
+        "expected_impact": "Reduce customer concentration risk by 20%"
+      },
+      {
+        "id": "mit_002",
+        "title": "Cost Optimization Program",
+        "priority": "medium",
+        "description": "Systematic review and optimization of operational expenses",
+        "actions": [
+          "Conduct vendor contract renegotiations",
+          "Implement automation for routine tasks",
+          "Optimize office space utilization"
+        ],
+        "timeline": "4 months",
+        "cost_estimate": 75000,
+        "expected_impact": "Reduce operational costs by 8-12%"
+      }
+    ],
+    "trend_data": [
+      { "month": "Apr 2024", "score": 72, "high": 3, "medium": 4, "low": 5 },
+      { "month": "May 2024", "score": 68, "high": 2, "medium": 5, "low": 5 },
+      { "month": "Jun 2024", "score": 65, "high": 2, "medium": 5, "low": 6 },
+      { "month": "Jul 2024", "score": 67, "high": 2, "medium": 6, "low": 4 },
+      { "month": "Aug 2024", "score": 63, "high": 1, "medium": 6, "low": 5 },
+      { "month": "Sep 2024", "score": 65, "high": 2, "medium": 5, "low": 5 }
+    ]
+  },
+  "monitoring": {
+    "overview": {
+      "anomalies_detected": 3,
+      "alerts_active": 5,
+      "monitoring_score": 82,
+      "system_health": "good"
+    },
+    "anomalies": [
+      {
+        "id": "anom_001",
+        "title": "Unusual Expense Spike",
+        "description": "Marketing expenses 35% higher than expected in August",
+        "priority": "medium",
+        "detected_date": "2024-09-02T08:30:00Z",
+        "category": "expenses",
+        "impact": "Budget variance of $45,000",
+        "status": "investigating"
+      },
+      {
+        "id": "anom_002",
+        "title": "Revenue Pattern Change",
+        "description": "Weekly revenue pattern shifted from historical trend",
+        "priority": "low",
+        "detected_date": "2024-09-05T14:15:00Z",
+        "category": "revenue",
+        "impact": "Timing shift, no revenue loss detected",
+        "status": "monitored"
+      },
+      {
+        "id": "anom_003",
+        "title": "Account Receivables Increase",
+        "description": "Days sales outstanding increased to 35 days vs 28 day average",
+        "priority": "high",
+        "detected_date": "2024-09-08T11:20:00Z",
+        "category": "cash_flow",
+        "impact": "Potential cash flow timing issues",
+        "status": "action_required"
+      }
+    ],
+    "forecasts": {
+      "optimistic": {
+        "scenario": "Optimistic growth with market expansion",
+        "probability": 0.25,
+        "projections": [
+          { "month": "Oct 2024", "revenue": 2650000, "expenses": 1850000, "cash": 9100000 },
+          { "month": "Nov 2024", "revenue": 2750000, "expenses": 1900000, "cash": 9950000 },
+          { "month": "Dec 2024", "revenue": 2850000, "expenses": 1950000, "cash": 10850000 },
+          { "month": "Jan 2025", "revenue": 2950000, "expenses": 2000000, "cash": 11800000 },
+          { "month": "Feb 2025", "revenue": 3050000, "expenses": 2050000, "cash": 12800000 },
+          { "month": "Mar 2025", "revenue": 3150000, "expenses": 2100000, "cash": 13850000 }
+        ]
+      },
+      "realistic": {
+        "scenario": "Steady growth with current market conditions",
+        "probability": 0.55,
+        "projections": [
+          { "month": "Oct 2024", "revenue": 2550000, "expenses": 1820000, "cash": 9230000 },
+          { "month": "Nov 2024", "revenue": 2580000, "expenses": 1840000, "cash": 9970000 },
+          { "month": "Dec 2024", "revenue": 2600000, "expenses": 1860000, "cash": 10710000 },
+          { "month": "Jan 2025", "revenue": 2650000, "expenses": 1880000, "cash": 11480000 },
+          { "month": "Feb 2025", "revenue": 2700000, "expenses": 1900000, "cash": 12280000 },
+          { "month": "Mar 2025", "revenue": 2750000, "expenses": 1920000, "cash": 13110000 }
+        ]
+      },
+      "pessimistic": {
+        "scenario": "Conservative growth with market challenges",
+        "probability": 0.20,
+        "projections": [
+          { "month": "Oct 2024", "revenue": 2400000, "expenses": 1800000, "cash": 9100000 },
+          { "month": "Nov 2024", "revenue": 2380000, "expenses": 1820000, "cash": 9660000 },
+          { "month": "Dec 2024", "revenue": 2350000, "expenses": 1840000, "cash": 10170000 },
+          { "month": "Jan 2025", "revenue": 2400000, "expenses": 1860000, "cash": 10710000 },
+          { "month": "Feb 2025", "revenue": 2450000, "expenses": 1880000, "cash": 11280000 },
+          { "month": "Mar 2025", "revenue": 2500000, "expenses": 1900000, "cash": 11880000 }
+        ]
+      }
+    },
+    "alerts": {
+      "threshold": [
+        {
+          "id": "th_001",
+          "metric": "Cash Position",
+          "threshold": 5000000,
+          "current_value": 8500000,
+          "status": "normal",
+          "message": "Cash position well above minimum threshold"
+        },
+        {
+          "id": "th_002",
+          "metric": "Burn Rate",
+          "threshold": 200000,
+          "current_value": 150000,
+          "status": "good",
+          "message": "Burn rate below target threshold"
+        }
+      ],
+      "trend": [
+        {
+          "id": "tr_001",
+          "metric": "Revenue Growth",
+          "trend": "positive",
+          "confidence": 0.85,
+          "message": "Revenue showing consistent upward trend"
+        },
+        {
+          "id": "tr_002",
+          "metric": "Expense Growth",
+          "trend": "concerning",
+          "confidence": 0.72,
+          "message": "Expense growth rate exceeding revenue growth"
+        }
+      ]
+    }
+  }
+}

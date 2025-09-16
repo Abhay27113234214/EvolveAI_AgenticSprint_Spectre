@@ -229,7 +229,7 @@ def login():
 @app.route("/home") 
 @login_required
 def home():
-    return render_template("home.html")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/upload_annual_report", methods=['POST'])
@@ -254,6 +254,12 @@ def uploadAnnualPdf():
     else:
         flash("File upload Not Successfull!", "danger")
         return "invlaid file type. Only pdfs are allowed."
+
+
+@app.route("/upload", methods=["GET"])
+@login_required
+def upload_page():
+    return render_template("upload.html")
 
 
 

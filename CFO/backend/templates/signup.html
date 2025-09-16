@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Spectre</title>
+    <meta name="description" content="Create your Spectre account">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzIyQzU1RSIvPgo8cGF0aCBkPSJNOCAxNmg0djRIOHYtNHpNMTIgMTJoNHY4aC00di04ek0xNiA4aDR2MTJoLTRWOHpNMjAgMTBoNHY2aC00di02eiIgZmlsbD0id2hpdGUiLz4KPHN2Zz4=">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="Spectre Home">
+                Spectre
+            </a>
+            <div class="navbar-auth">
+                <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-primary">Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">Create Your Account</h1>
+            <form class="auth-form" id="signupForm" method="POST" action="{{ url_for('register') }}">
+                <div class="form-group">
+                    <label for="full_name" class="form-label">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="full_name" 
+                        name="full_name" 
+                        class="form-control" 
+                        required 
+                        autocomplete="name"
+                        placeholder="Your full name"
+                    >
+                    <div class="error-message" id="nameError" role="alert"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="work_email" class="form-label">Work Email</label>
+                    <input 
+                        type="email" 
+                        id="work_email" 
+                        name="work_email" 
+                        class="form-control" 
+                        required 
+                        autocomplete="email"
+                        placeholder="your@email.com"
+                    >
+                    <div class="error-message" id="emailError" role="alert"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-control" 
+                        required 
+                        autocomplete="new-password"
+                        minlength="8"
+                        placeholder="Create a strong password"
+                    >
+                    <div class="error-message" id="passwordError" role="alert"></div>
+                    <small class="form-hint">
+                        At least 8 characters with numbers and symbols
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="job_title" class="form-label">Job Title</label>
+                    <input 
+                        type="text" 
+                        id="job_title" 
+                        name="job_title" 
+                        class="form-control" 
+                        placeholder="e.g., CFO"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="company_name" class="form-label">Company Name</label>
+                    <input 
+                        type="text" 
+                        id="company_name" 
+                        name="comapny_name" 
+                        class="form-control" 
+                        required 
+                        placeholder="Your Company"
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Create Account
+                </button>
+                
+                <div class="auth-links">
+                    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer style="background-color: var(--bg-secondary); border-top: 1px solid var(--border-color); padding: var(--space-xl) 0;">
+        <div class="container">
+            <div class="text-center">
+                <p style="color: var(--text-muted); margin: 0;">
+                    &copy; 2024 Spectre. Intelligent Financial Management Platform.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/utils.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
