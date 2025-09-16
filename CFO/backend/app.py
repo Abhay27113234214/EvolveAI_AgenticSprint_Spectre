@@ -33,6 +33,9 @@ import os
 
 
 
+
+
+
 # flask setup
 jwt = JWTManager()
 app = Flask(__name__, static_folder="static")
