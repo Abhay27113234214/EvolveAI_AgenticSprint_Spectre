@@ -194,10 +194,6 @@ def calculate_kpis(data: FinancialReportData) -> dict:
 
 
 
-
-
-
-
 # models in the flask database
 class User(db.Model, UserMixin):
     __tablename__ = "user"
