@@ -79,6 +79,10 @@ class FinancialReportData(BaseModel):
     total_liabilities: float = Field(description="Sum of current and non-current liabilities in crores.")
     cash_reserves: float = Field(description="The consolidated cash balance in crores.")
     net_cash_from_operations: float = Field(description="Net cash generated from or used in operating activities in crores.")
+    total_current_assets: float = Field(description="The value for the 'Total current assets' line item from the Consolidated Balance Sheet.")
+    total_current_liabilities: float = Field(description="The value for the 'Total current liabilities' line item from the Consolidated Balance Sheet.")
+    total_equity: float = Field(description="The value for the 'Total equity' line item from the Consolidated Balance Sheet.")
+
 recursive_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 def format_docs(retrieved_docs):
     context_text = "\n\n".join([doc.page_content for doc in retrieved_docs])
@@ -130,6 +134,70 @@ def normalize_to_crore(extracted_data: ExtractedValue) -> float:
              return value / 10000000.0
     
     return value
+
+
+
+
+
+
+
+# financial shit 
+# Add this function to your app.py file
+
+def calculate_kpis(data: FinancialReportData) -> dict:
+    kpis = {}
+
+    if data.revenue_previous_year > 0:
+        growth = ((data.revenue_current_year - data.revenue_previous_year) / data.revenue_previous_year) * 100
+        kpis['revenue_growth_percent'] = round(growth, 2)
+    else:
+        kpis['revenue_growth_percent'] = None
+
+    if data.revenue_current_year > 0:
+        margin = (data.profit_after_tax_current_year / data.revenue_current_year) * 100
+        kpis['profit_margin_percent'] = round(margin, 2)
+    else:
+        kpis['profit_margin_percent'] = None
+
+    monthly_cash_flow = data.net_cash_from_operations / 12
+    kpis['monthly_net_cash_flow'] = round(monthly_cash_flow, 2)
+    if monthly_cash_flow < 0:
+        kpis['monthly_burn_rate'] = abs(round(monthly_cash_flow, 2))
+    else:
+        kpis['monthly_burn_rate'] = 0 # Not burning cash
+
+
+    if kpis['monthly_burn_rate'] > 0:
+        runway = data.cash_reserves / kpis['monthly_burn_rate']
+        kpis['runway_months'] = round(runway, 2)
+    else:
+        # If not burning cash, runway is effectively infinite
+        kpis['runway_months'] = float('inf') 
+
+    if data.total_current_liabilities > 0:
+        current_ratio = data.total_current_assets / data.total_current_liabilities
+        kpis['current_ratio'] = round(current_ratio, 2)
+    else:
+        kpis['current_ratio'] = None
+
+
+    if data.total_equity is not None and data.total_equity != 0:
+        debt_to_equity = data.total_liabilities / data.total_equity
+        kpis['debt_to_equity_ratio'] = round(debt_to_equity, 2)
+    else:
+        kpis['debt_to_equity_ratio'] = None
+
+    if data.total_equity is not None and data.total_equity != 0:
+        roe = (data.profit_after_tax_current_year / data.total_equity) * 100
+        kpis['return_on_equity_percent'] = round(roe, 2)
+    else:
+        kpis['return_on_equity_percent'] = None
+        
+    return kpis
+
+
+
+
 
 
 
@@ -276,14 +344,15 @@ def dashboard():
         "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
         "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
         "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
-        "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet for the current year?",
-        "cash_reserves": "What is the 'CONSOLIDATED cash balance' as of the end of the current fiscal year?",
-        "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?"
+        "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
+        "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
+        "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
+        "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
+        "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
+        "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
     }
 
-    print(current_user.company_name)
     extracted_answers = {"company_name": str(current_user.company_name)}
-    
     
     extraction_model = model.with_structured_output(ExtractedValue)
     extraction_prompt = PromptTemplate.from_template(
@@ -326,7 +395,12 @@ def dashboard():
         extracted_answers[key] = normalized_value
 
     final_data = FinancialReportData(**extracted_answers)
-    return jsonify(final_data.dict())
+
+    kpis = calculate_kpis(final_data)
+
+    result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
+
+    return result.content
    
 
 
