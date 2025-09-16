@@ -29,7 +29,8 @@ from datetime import datetime
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
-
+import numpy as np
+import pandas as pd
 
 
 
@@ -50,7 +51,7 @@ app.config['SECRET_KEY'] = 'projectbangayaapna'
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf'}
+ALLOWED_EXTENSIONS = {'pdf', 'xls', 'xlsx'}
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, UPLOAD_FOLDER)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 def allowed_file(filename):
@@ -136,6 +137,28 @@ def normalize_to_crore(extracted_data: ExtractedValue) -> float:
              return value / 10000000.0
     
     return value
+
+
+class FinancialDataLocationMap(BaseModel):
+    """
+    A structured map that links each financial metric to the specific Excel sheet
+    where its data can be found.
+    """
+    company_name: Optional[str] = Field(description="The name of the sheet containing the company's name (e.g., 'Cover Page', 'Summary').")
+    fiscal_year: Optional[str] = Field(description="The name of the sheet containing the fiscal year (e.g., 'Cover Page', 'Summary').")
+    
+    revenue_current_year: Optional[str] = Field(description="The name of the sheet containing the Profit and Loss or Income Statement.")
+    revenue_previous_year: Optional[str] = Field(description="The name of the sheet containing the Profit and Loss or Income Statement.")
+    profit_after_tax_current_year: Optional[str] = Field(description="The name of the sheet containing the Profit and Loss or Income Statement.")
+    profit_after_tax_previous_year: Optional[str] = Field(description="The name of the sheet containing the Profit and Loss or Income Statement.")
+    
+    total_liabilities: Optional[str] = Field(description="The name of the sheet containing the Balance Sheet.")
+    total_current_assets: Optional[str] = Field(description="The name of the sheet containing the Balance Sheet.")
+    total_current_liabilities: Optional[str] = Field(description="The name of the sheet containing the Balance Sheet.")
+    total_equity: Optional[str] = Field(description="The name of the sheet containing the Balance Sheet.")
+
+    cash_reserves: Optional[str] = Field(description="The name of the sheet containing the high-level cash balance (e.g., 'Summary', 'Highlights', or 'Balance Sheet').")
+    net_cash_from_operations: Optional[str] = Field(description="The name of the sheet containing the Cash Flow Statement.")
 
 
 
@@ -231,9 +254,6 @@ class ChatMessage(db.Model):
 
 
 
-
-
-
 # routes 
 @app.route("/")
 def index():
@@ -285,7 +305,7 @@ def login():
             return redirect(url_for('home'))
         else:
             flash("Invalid credentials!", "danger")
-            return redirect(url_for("register"))
+            return redirect(url_for("register"))  
     return render_template("login.html")
 
 
@@ -296,16 +316,17 @@ def home():
 
 
 @app.route("/upload_annual_report", methods=['POST'])
-def uploadAnnualPdf():
-    if 'pdf_file' not in request.files:
+@login_required
+def uploadAnnualReport():
+    if 'report_file' not in request.files:
         flash('No files passed!', "danger")
-        return redirect(url_for('uploadAnnualPdf'))
+        return redirect(url_for('home'))
 
-    file = request.files['pdf_file']
+    file = request.files['report_file']
     
     if file.filename == "":
         flash('No File selected', 'danger')
-        return redirect(url_for('uploadAnnualPdf'))
+        return redirect(url_for('home'))
     
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
@@ -316,20 +337,14 @@ def uploadAnnualPdf():
         return redirect(url_for("dashboard"))
     else:
         flash("File upload Not Successfull!", "danger")
-        return "invlaid file type. Only pdfs are allowed."
-
-
-@app.route("/upload", methods=["GET"])
-@login_required
-def upload_page():
-    return render_template("upload.html")
+        return "invlaid file type."
 
 
 
-@app.route("/dashboard")
+@app.route("/dashboard", methods=['POST','GET'])
 @login_required
 def dashboard():
-    file_path = session.pop('uploaded_file_path')
+    file_path = session.get('uploaded_file_path')
     if file_path.endswith('.pdf'):
         print("Loading pre-built FAISS index...")
         vector_store = FAISS.load_local(
@@ -401,10 +416,101 @@ def dashboard():
         kpis = calculate_kpis(final_data)
 
         result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
-
+        print(result.content)
         return result.content
-    else:
-        return 'none'
+    
+    elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        xls = pd.ExcelFile(file_path)
+        sheet_names = xls.sheet_names
+
+
+        questions = {
+            "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
+            "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
+            "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
+            "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
+            "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
+            "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
+            "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
+            "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
+            "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
+            "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
+            "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
+        }
+
+        mapping_prompt = PromptTemplate.from_template(
+            """
+                You are an expert financial document analyst. Your primary task is to create a structural map of an Excel workbook.
+
+                Analyze the provided list of sheet names . For **each financial metric** listed in the JSON schema, determine which sheet is the most likely source for that information.
+
+                **Instructions:**
+                - Group related metrics. For example, all revenue and profit figures will be on the same "Profit & Loss" sheet. All assets, liabilities, and equity figures will be on the same "Balance Sheet".
+                - If you cannot confidently determine the location for a metric based on the provided context (e.g., the names and content are generic like 'Sheet1'), you MUST use `null` for that field.
+
+                **CONTEXT FROM WORKBOOK:**
+                {sheet_names}
+           """
+        )
+        mapping_model = model.with_structured_output(FinancialDataLocationMap)
+        mapping_chain = mapping_prompt | mapping_model
+        ai_generated_map = mapping_chain.invoke({"sheet_names": sheet_names})
+        ai_generated_map = ai_generated_map.model_dump()
+
+        print(ai_generated_map)
+
+        extracted_excel_ans = {}
+        excel_metric_prompt = PromptTemplate.from_template(
+            """
+            You are a precise data extraction bot specializing in parsing CSV data from financial tables. Your task is to find a single metric.
+
+            **Instructions:**
+            1.  First, analyze the column headers in the CSV CONTEXT to determine the overall unit for the data (e.g., 'in Crores', 'in Thousands', 'in Lakhs').
+            2.  Next, find the specific **METRIC TO FIND** in the first column.
+            3.  Locate the value for that metric in the correct year's column.
+            4.  Extract the numerical value and the overall unit you identified in step 1.
+            5.  Pay close attention to negative numbers, often in parentheses like (971).
+            6.  If the metric cannot be found, return null for both value and unit.
+
+            **CSV CONTEXT:**
+            {sheet_context}
+
+            **METRIC TO FIND:**
+            {metric_to_find}
+            """
+        )
+        extraction_model = model.with_structured_output(ExtractedValue)
+        excel_chain = excel_metric_prompt | extraction_model
+        for key in ai_generated_map:
+
+            if key=='company_name':
+                extracted_excel_ans[key] = str(current_user.company_name)
+                continue
+
+            sheet_name_to_process = ai_generated_map.get(key)
+            if not sheet_name_to_process:
+                print(f"AI could not map a sheet for '{key}'. Skipping.")
+                extracted_excel_ans[key] = None
+                continue
+
+            df = pd.read_excel(file_path, sheet_name=ai_generated_map[key])
+            csv_for_sheet = df.to_csv(index=False)
+
+            raw_data = excel_chain.invoke({'sheet_context':csv_for_sheet, "metric_to_find":questions[key]})
+
+            normalized_value = normalize_to_crore(raw_data)
+            extracted_excel_ans[key] = normalized_value
+        
+        final_data = FinancialReportData(**extracted_excel_ans)
+        kpis = calculate_kpis(final_data)
+
+        result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
+        print(result.content)
+        return result.content
+
+
+
+        
    
 
 
