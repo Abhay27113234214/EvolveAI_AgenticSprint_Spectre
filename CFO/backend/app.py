@@ -108,7 +108,30 @@ populate_pydantic_model_prompt = PromptTemplate(
 )
 structured_model = model.with_structured_output(FinancialReportData)
 str_parser = StrOutputParser()
+class ExtractedValue(BaseModel):
+    """A model to capture a numerical value and its associated unit."""
+    value: float = Field(description="The numerical value extracted from the text, ignoring commas.")
+    unit: Literal['crore', 'lakh', 'thousand', 'none'] = Field(description="The unit associated with the value. If no unit, use 'none'.")
 
+# The Python function for reliable math
+def normalize_to_crore(extracted_data: ExtractedValue) -> float:
+    """Converts an ExtractedValue object to a float in crores."""
+    if not extracted_data or extracted_data.value is None:
+        return 0.0
+
+    value = extracted_data.value
+    unit = extracted_data.unit
+
+    if unit == 'lakh':
+        return value / 100.0
+    elif unit == 'thousand':
+        return value / 100000.0
+    elif unit == 'none':
+        # Handles raw numbers like 95,000; assumes it's not in crores
+        if value > 100000: # Heuristic: large raw numbers are likely not crores
+             return value / 10000000.0
+    
+    return value # Assumes the unit is 'crore' or a raw number already in crores
 
 
 
@@ -239,40 +262,74 @@ def uploadAnnualPdf():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    # file_path = session.pop('uploaded_file_path', None)
-    # pdf_loader = PyPDFLoader(file_path)
-    # docs = pdf_loader.load()
-    # chunks = recursive_splitter.split_documents(docs)
+
+    print("Loading pre-built FAISS index...")
     vector_store = FAISS.load_local(
-        FAISS_INDEX_PATH, 
-        embedding_model, 
-        allow_dangerous_deserialization=True 
+        FAISS_INDEX_PATH,
+        embedding_model,
+        allow_dangerous_deserialization=True
     )
-    similarity_retriever = vector_store.as_retriever(search_type='similarity', search_kwargs={'k':1})
-    retriever_questions = [
-        "What is the registered name of the company on the cover of the Annual Report?",
-        "What is the fiscal year mentioned on the cover page of the Annual Report, such as '2023-24'?",
-        "What is the value for 'Revenue from operations' for the current fiscal year in the 'Consolidated audited profit and loss account' table?",
-        "What is the value for 'Revenue from operations' for the previous fiscal year in the 'Consolidated audited profit and loss account' table?",
-        "What is the 'Profit / (loss) for the year' for the current fiscal year from the 'Consolidated Statement of Profit and Loss'?",
-        "What is the 'Profit / (loss) for the year' for the previous fiscal year from the 'Consolidated Statement of Profit and Loss'?",
-        "From the 'Consolidated Balance Sheet' for the current fiscal year, what are the values for 'Total non-current liabilities' and 'Total current liabilities'?",
-        "What is the 'Consolidated cash balance' as of the end of the current fiscal year (FY24), as shown in the financial highlights or charts?",
-        "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year from the 'Consolidated Statement of Cash Flows'?"
-    ]
+    retriever = vector_store.as_retriever(search_kwargs={'k': 5})
+    print("Index loaded successfully.")
 
-    context = []
-    for question in retriever_questions:
-        context.append(similarity_retriever.invoke(question)[0])
+    questions = {
+        "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
+        "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
+        "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
+        "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
+        "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
+        "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet for the current year?",
+        "cash_reserves": "What is the 'CONSOLIDATED cash balance' as of the end of the current fiscal year?",
+        "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?"
+    }
 
-    final_context = format_docs(context)
+    print(current_user.company_name)
+    extracted_answers = {"company_name": str(current_user.company_name)}
+    
+    
+    extraction_model = model.with_structured_output(ExtractedValue)
+    extraction_prompt = PromptTemplate.from_template(
+        """Based ONLY on the following CONTEXT, extract the value and unit for the requested metric.
+           - Pay close attention to words like "loss" or numbers in parentheses like (971). These indicate a negative number, and you MUST return a negative value (e.g., -971).
 
-    chain = populate_pydantic_model_prompt | structured_model
-    result = chain.invoke({"final_context_from_rag":final_context})
-    print(result)
-    return "successfull analysis"
+        CONTEXT:
+        {context}
+        
+        METRIC:
+        {question}
+        """
+    )
+    extraction_chain = extraction_prompt | extraction_model
 
+    for key, question in questions.items():
+        print(f"Processing: {key}...")
+        
+        if key in [ "fiscal_year"]:
+            retrieved_docs = retriever.invoke(question)
+            context_string = format_docs(retrieved_docs)
+            simple_chain = PromptTemplate.from_template("From the context: {context}, answer the question: {question}. Respond with only the answer.") | model | StrOutputParser()
+            answer = simple_chain.invoke({"context": context_string, "question": question})
+            extracted_answers[key] = answer
+            print(f"  -> Raw Text Answer: '{answer}'")
+            continue
 
+        retrieved_docs = retriever.invoke(question)
+        context_string = format_docs(retrieved_docs)
+        
+        raw_extracted_data = extraction_chain.invoke({
+            "context": context_string,
+            "question": question
+        })
+        print(f"  -> Raw Extracted Data: {raw_extracted_data}")
+        
+        normalized_value = normalize_to_crore(raw_extracted_data)
+        print(f"  -> Normalized Value (in Crores): {normalized_value}")
+        
+        extracted_answers[key] = normalized_value
+
+    final_data = FinancialReportData(**extracted_answers)
+    return jsonify(final_data.dict())
+   
 
 
 
