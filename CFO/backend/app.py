@@ -9,10 +9,13 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain.retrievers.multi_query import MultiQueryRetriever
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from dotenv import load_dotenv
-from flask import Flask ,render_template ,redirect ,url_for ,request ,flash , abort
+from flask import Flask ,render_template ,redirect ,url_for ,request ,flash , abort, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from functools import wraps
@@ -50,6 +53,11 @@ app.config['UPLOAD_FOLDER'] = os.path.join(basedir, UPLOAD_FOLDER)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+login_manager = LoginManager()
+login_manager.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
 
 
 
@@ -59,16 +67,8 @@ def allowed_file(filename):
 
 # the langchain code 
 load_dotenv()
+FAISS_INDEX_PATH = "C:/Users/abhay/Desktop/CFO/backend/faiss_index"
 model = ChatGoogleGenerativeAI(model='gemini-1.5-flash')
-
-
-
-
-
-
-
-
-
 class FinancialReportData(BaseModel):
     company_name: str = Field(description="Name of the company")
     fiscal_year: str = Field(description="The fiscal year of the report, e.g., 'FY24'")
@@ -79,31 +79,54 @@ class FinancialReportData(BaseModel):
     total_liabilities: float = Field(description="Sum of current and non-current liabilities in crores.")
     cash_reserves: float = Field(description="The consolidated cash balance in crores.")
     net_cash_from_operations: float = Field(description="Net cash generated from or used in operating activities in crores.")
+recursive_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+def format_docs(retrieved_docs):
+    context_text = "\n\n".join([doc.page_content for doc in retrieved_docs])
+    return context_text
+embedding_model = GoogleGenerativeAIEmbeddings(model='text-embedding-004')
+populate_pydantic_model_prompt = PromptTemplate(
+    template="""
+        ## ROLE
+        You are an expert financial data extraction system. Your purpose is to read a given text context and accurately extract specific financial figures.
 
+        ---
+        ## TASK
+        Your task is to populate a JSON object that strictly adheres to the provided JSON schema. You must find the correct values for each field from the **CONTEXT** below and place them into the corresponding fields of the JSON object.
 
+        ---
+        ## CONSTRAINTS
+        - **STRICTLY use ONLY the information present in the CONTEXT provided.** Do not use any external knowledge or make assumptions.
+        - If a specific value for a field is not found in the CONTEXT, you **MUST** use a `null` value for that field. Do not try to calculate or infer missing data.
+        - Extract only the numerical values. For example, if the text says "₹12,114 crore", you must extract the number `12114`.
+        - Pay close attention to the fiscal years. Ensure the data for "current_year" and "previous_year" are from the correct periods mentioned in the context.
 
-
-
-# the cache system to boost the performance
-visited_url_cache = {}
-
+        ---
+        ## CONTEXT
+        {final_context_from_rag}
+    """,
+    input_variables=['final_context_from_rag']
+)
+structured_model = model.with_structured_output(FinancialReportData)
+str_parser = StrOutputParser()
 
 
 
 
 
 # models in the flask database
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key = True)
-    userName = db.Column(db.String(200))
-    email = db.Column(db.String(150), nullable = False)
+    full_name = db.Column(db.String(200))
+    work_email = db.Column(db.String(150), nullable = False)
+    job_title = db.Column(db.String(150), nullable = True)
+    company_name = db.Column(db.String(150), nullable = True)
     password_hash = db.Column(db.String(256), nullable = False)
     def as_dict(self):
         return {
             "id": self.id,
-            "userName": self.userName,
-            "email": self.email,
+            "full_name": self.full_name,
+            "email": self.work_email,
         }
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password)
@@ -119,14 +142,142 @@ class ChatMessage(db.Model):
     message = db.Column(db.String(2000))
     timestamp = db.Column(db.DateTime, default = datetime.utcnow)
 
-def role_required(role):
-    def wrapper(fn):
-        @wraps(fn)
-        def decorated_view(*args, **kwargs):
-            if not current_user.is_authenticated or current_user.role == role:
-                return fn(*args, **kwargs)
-        return decorated_view
-    return wrapper
+
+
+
+
+
+
+
+
+# routes 
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/register", methods=["POST", "GET"])
+def register():
+    if request.method =="POST":
+        full_name = request.form.get('full_name')
+        work_email = request.form.get('work_email')
+        job_title = request.form.get('job_title')
+        company_name = request.form.get('comapny_name')
+        password = request.form.get('password')
+
+        if User.query.filter_by(work_email=work_email).first():
+            flash("User already exists. Try logging in instead!", "danger")
+            return redirect(url_for("login"))
+
+
+        new_user = User(
+                full_name = full_name,
+                work_email = work_email,
+                job_title = job_title,
+                company_name=company_name
+            )
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash("Registeration Successfull! Please login.", "success")
+        return redirect(url_for("login"))
+    
+    return render_template("register.html")
+
+
+
+
+@app.route("/login", methods=["POST", "GET"])
+def login():
+    if request.method == "POST":
+        work_email = request.form.get("work_email")
+        password = request.form.get("password")
+        job_title = request.form.get("job_title")
+        user = User.query.filter_by(work_email = work_email, job_title = job_title).first()
+        if user and user.check_password(password):
+            login_user(user)
+            flash("Login successful!", "success")
+            return redirect(url_for('home'))
+        else:
+            flash("Invalid credentials!", "danger")
+            return redirect(url_for("register"))
+    return render_template("login.html")
+
+
+@app.route("/home") 
+@login_required
+def home():
+    return render_template("home.html")
+
+
+@app.route("/upload_annual_report", methods=['POST'])
+def uploadAnnualPdf():
+    if 'pdf_file' not in request.files:
+        flash('No files passed!', "danger")
+        return redirect(url_for('uploadAnnualPdf'))
+
+    file = request.files['pdf_file']
+    
+    if file.filename == "":
+        flash('No File selected', 'danger')
+        return redirect(url_for('uploadAnnualPdf'))
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(save_path)
+        session['uploaded_file_path'] = save_path
+        flash("file upload Successfull!", "success")
+        return redirect(url_for("dashboard"))
+    else:
+        flash("File upload Not Successfull!", "danger")
+        return "invlaid file type. Only pdfs are allowed."
+
+
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    # file_path = session.pop('uploaded_file_path', None)
+    # pdf_loader = PyPDFLoader(file_path)
+    # docs = pdf_loader.load()
+    # chunks = recursive_splitter.split_documents(docs)
+    vector_store = FAISS.load_local(
+        FAISS_INDEX_PATH, 
+        embedding_model, 
+        allow_dangerous_deserialization=True 
+    )
+    similarity_retriever = vector_store.as_retriever(search_type='similarity', search_kwargs={'k':1})
+    retriever_questions = [
+        "What is the registered name of the company on the cover of the Annual Report?",
+        "What is the fiscal year mentioned on the cover page of the Annual Report, such as '2023-24'?",
+        "What is the value for 'Revenue from operations' for the current fiscal year in the 'Consolidated audited profit and loss account' table?",
+        "What is the value for 'Revenue from operations' for the previous fiscal year in the 'Consolidated audited profit and loss account' table?",
+        "What is the 'Profit / (loss) for the year' for the current fiscal year from the 'Consolidated Statement of Profit and Loss'?",
+        "What is the 'Profit / (loss) for the year' for the previous fiscal year from the 'Consolidated Statement of Profit and Loss'?",
+        "From the 'Consolidated Balance Sheet' for the current fiscal year, what are the values for 'Total non-current liabilities' and 'Total current liabilities'?",
+        "What is the 'Consolidated cash balance' as of the end of the current fiscal year (FY24), as shown in the financial highlights or charts?",
+        "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year from the 'Consolidated Statement of Cash Flows'?"
+    ]
+
+    context = []
+    for question in retriever_questions:
+        context.append(similarity_retriever.invoke(question)[0])
+
+    final_context = format_docs(context)
+
+    chain = populate_pydantic_model_prompt | structured_model
+    result = chain.invoke({"final_context_from_rag":final_context})
+    print(result)
+    return "successfull analysis"
+
+
+
+
+
+
+
 
 
 
@@ -223,8 +374,8 @@ api.add_resource(UploadAnnualReportPdf, '/api/uploadAnnualReportPdf')
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        if not User.query.filter_by(role="admin").first():
-            admin_user = User(id=0,userName="Admin", email="admin@gmail.com", mobile="1234567890", role="admin")
+        if not User.query.filter_by(work_email="admin@gmail.com").first():
+            admin_user = User(id=0,full_name="Admin", work_email="admin@gmail.com", job_title="admin")
             admin_user.set_password("admin123") 
             db.session.add(admin_user)
             db.session.commit()

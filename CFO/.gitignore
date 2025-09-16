@@ -1,0 +1,38 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# VS Code settings
+.vscode/
+
+# Environment variables
+.env
+
+# Database files
+*.db
+*.sqlite3
+
+# FAISS index files
+backend/faiss_index/
+
+# Uploaded files
+backend/uploads/
+
+# Compiled / build files
+*.log
+*.out
+*.egg-info/
+dist/
+build/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
