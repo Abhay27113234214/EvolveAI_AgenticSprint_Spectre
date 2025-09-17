@@ -161,7 +161,23 @@ class FinancialDataLocationMap(BaseModel):
     net_cash_from_operations: Optional[str] = Field(description="The name of the sheet containing the Cash Flow Statement.")
 
 
+from pydantic import BaseModel, Field
+from typing import List, Literal
 
+class RiskItem(BaseModel):
+    risk_title: str = Field(description="A short, descriptive title for the risk (e.g., 'Liquidity Concern').")
+    risk_level: Literal['Low', 'Medium', 'High'] = Field(description="The assessed severity of the risk.")
+    description: str = Field(description="A brief explanation of the risk, citing the specific KPI that indicates this risk.")
+    recommendation: str = Field(description="A single, actionable recommendation to mitigate this risk.")
+
+class RiskAnalysisReport(BaseModel):
+    """The final, structured risk analysis report."""
+    overall_risk_score: int = Field(description="An overall financial risk score from 0 (very low risk) to 100 (very high risk).")
+    financial_risks: List[RiskItem] = Field(description="A list of identified risks directly related to financial metrics like debt, profitability, and cash flow.")
+    operational_risks: List[RiskItem] = Field(description="A list of potential operational risks inferred from the financial data (e.g., dependency on a single revenue stream).")
+    market_risks: List[RiskItem] = Field(description="A list of potential market or external risks inferred from the financial data (e.g., vulnerability to interest rate changes if debt is high).")
+    compliance_risks: List[RiskItem] = Field(description="A list of potential compliance or regulatory risks inferred from the financial data or company operations.")
+    mitigation_recommendations: List[str] = Field(description="A bulleted list of the top 3-4 high-level strategic recommendations to mitigate the most critical risks identified.")
 
 
 
@@ -194,7 +210,7 @@ def calculate_kpis(data: FinancialReportData) -> dict:
         runway = data.cash_reserves / kpis['monthly_burn_rate']
         kpis['runway_months'] = round(runway, 2)
     else:
-        kpis['runway_months'] = float('inf') 
+        kpis['runway_months'] = "Infinity"
 
     if data.total_current_liabilities > 0:
         current_ratio = data.total_current_assets / data.total_current_liabilities
@@ -302,11 +318,16 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             flash("Login successful!", "success")
-            return redirect(url_for('home'))
+            return redirect(url_for('upload_page'))
         else:
             flash("Invalid credentials!", "danger")
             return redirect(url_for("register"))  
     return render_template("login.html")
+
+
+@app.route("/upload_page")
+def upload_page():
+    return render_template('upload.html')
 
 
 @app.route("/home") 
@@ -344,6 +365,113 @@ def uploadAnnualReport():
 @app.route("/dashboard", methods=['POST','GET'])
 @login_required
 def dashboard():
+    return render_template('dashboard.html')
+    
+
+@app.route("/insights")
+@login_required
+def insights():
+    return render_template('insights.html')
+
+
+@app.route("/chatbot/insights", methods=['POST'])
+@login_required
+def chat_bot():
+    data = request.get_json()
+    user_message_text = data.get('message', '').strip()
+    if not user_message_text:
+        return jsonify({"success": False, "response": "No message provided."}), 400
+
+    user = User.query.filter_by(work_email=current_user.work_email).first()
+    
+    financial_context = session.get('financial_data', {})
+    if not financial_context:
+        return jsonify({"success": False, "response": "Financial data not found. Please analyze a document first."}), 400
+
+    chat_messages = ChatMessage.query.filter_by(user_id=user.id).order_by(ChatMessage.timestamp).all()
+    chat_history_for_chain = []
+    for msg in chat_messages:
+        if msg.is_user_message:
+            chat_history_for_chain.append(HumanMessage(content=msg.message))
+        else:
+            chat_history_for_chain.append(AIMessage(content=msg.message))
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an expert financial AI assistant. Your role is to answer questions based ONLY on the provided financial data and the ongoing conversation. Be helpful, clear, and concise.
+
+        FINANCIAL DATA CONTEXT:
+        {financial_data}"""),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}"),
+    ])
+
+    chain = prompt | model | StrOutputParser()
+    result = chain.invoke({
+        "financial_data": financial_context,
+        "chat_history": chat_history_for_chain,
+        "question": user_message_text
+    })
+
+    new_user_message = ChatMessage(user_id=user.id, is_user_message=True, message=user_message_text)
+    db.session.add(new_user_message)
+    
+    new_ai_message = ChatMessage(user_id=user.id, is_user_message=False, message=result)
+    db.session.add(new_ai_message)
+    
+    db.session.commit()
+    return jsonify({'success': True, 'response': result})
+
+
+
+@app.route("/risk_page", methods=['POST', 'GET'])
+@login_required
+def risks():
+    return render_template('risks.html')
+
+
+
+
+@app.route("/api/get-risk-analysis", methods=['POST'])
+@login_required
+def get_risk_analysis():
+    financial_data = session.get('financial_data')
+    if not financial_data:
+        return jsonify({"error": "Financial data not found. Please analyze a document first."}), 404
+
+    
+    risk_prompt = PromptTemplate.from_template(
+        """
+        You are an expert risk analyst for a top-tier financial consultancy. Your task is to conduct a thorough risk assessment based ONLY on the provided financial data and KPIs.
+
+        Analyze the data and populate a JSON object that strictly adheres to the provided schema.
+
+        **Instructions:**
+        - **Overall Score:** Calculate an overall risk score from 0 (very low risk) to 100 (very high risk). A profitable, high-growth, low-debt company should have a low score. A company burning cash with high debt should have a high score.
+        - **Categorize Risks:** Identify specific risks and categorize them as Financial, Operational, or Market risks.
+        - **Cite Evidence:** For each risk, you MUST cite the specific KPI or data point that supports your conclusion in the description.
+        - **Be Actionable:** Provide a concise, actionable recommendation for each identified risk.
+        - A separate, high-level summary of the top 3-4 **Risk Mitigation Recommendations** for the board.
+
+        **FINANCIAL DATA & KPIS:**
+        {financial_context}
+        """
+    )
+
+    risk_model = model.with_structured_output(RiskAnalysisReport)
+    risk_chain = risk_prompt | risk_model
+    
+    risk_report = risk_chain.invoke({"financial_context": financial_data})
+    
+    return jsonify(risk_report.model_dump())
+
+
+
+
+
+        
+@app.route("/api/get-dashboard-data", methods=['POST'])
+@login_required
+def get_dashboard_data():
     file_path = session.get('uploaded_file_path')
     if file_path.endswith('.pdf'):
         print("Loading pre-built FAISS index...")
@@ -414,10 +542,38 @@ def dashboard():
         final_data = FinancialReportData(**extracted_answers)
 
         kpis = calculate_kpis(final_data)
+        session['financial_data'] = kpis
+        prompt = PromptTemplate.from_template("""
+            Act as a Chief Financial Officer (CFO) tasked with presenting a financial health report to the company's board of directors. Your analysis must be clear, concise, and grounded in the data provided.
+            All financial figures are in **Indian Rupees (INR Crores)**. Your entire analysis, including all summaries, risks, and recommendations, must be presented in this context. Do not use the word 'dollars' or the '$' symbol.
 
-        result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
-        print(result.content)
-        return result.content
+            Based **only** on the following Key Performance Indicators (KPIs), generate a markdown-formatted report that includes the following three sections:
+
+            1.  **### Financial Summary**
+                A brief, high-level overview of the company's performance.
+
+            2.  **### Key Risks & Opportunities**
+                A bulleted list identifying the most significant financial risks and potential opportunities, citing specific KPIs to support your points.
+
+            3.  **### Strategic Recommendations**
+                A bulleted list of 2-3 actionable recommendations for the leadership team to improve the company's financial position.
+
+            ---
+            **KPIs for Analysis:**
+
+            {kpis}
+        """)
+
+        prompt_final = prompt.invoke({'kpis':kpis})
+        final_analysis = model.invoke(prompt_final).content
+
+        final_response = {
+            "extracted_data": extracted_excel_ans,
+            "calculated_kpis": kpis,
+            "final_analysis": final_analysis
+        }
+
+        return jsonify(final_response)
     
     elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
         xls = pd.ExcelFile(file_path)
@@ -425,17 +581,18 @@ def dashboard():
 
 
         questions = {
-            "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
-            "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
-            "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
-            "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
-            "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
-            "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
-            "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
-            "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
-            "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
-            "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
-            "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
+            "company_name": "What is the registered name of the company?",
+            "fiscal_year": "What is the most recent fiscal year designation (e.g., FY25)?",
+            "cash_reserves": "What is the 'Consolidated cash balance' for the most recent year?",
+            "revenue_current_year": "What is 'Revenue from operations' for the most recent year shown in the data?",
+            "revenue_previous_year": "What is 'Revenue from operations' for the year before the most recent one?",
+            "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the most recent year?",
+            "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the year before the most recent one?",
+            "total_current_assets": "What is the value for 'Total current assets' for the most recent year?",
+            "total_current_liabilities": "What is the value for 'Total current liabilities' for the most recent year?",
+            "total_liabilities": "What is the value for 'Total liabilities' for the most recent year?",
+            "total_equity": "What is the value for 'Total equity' for the most recent year?",
+            "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the most recent year?"
         }
 
         mapping_prompt = PromptTemplate.from_template(
@@ -497,24 +654,49 @@ def dashboard():
             csv_for_sheet = df.to_csv(index=False)
 
             raw_data = excel_chain.invoke({'sheet_context':csv_for_sheet, "metric_to_find":questions[key]})
-
-            normalized_value = normalize_to_crore(raw_data)
-            extracted_excel_ans[key] = normalized_value
+            if key == 'fiscal_year':
+                current_date = datetime.now()
+                extracted_excel_ans[key] = str(raw_data.value) or str(current_date.year)
+            else:
+                normalized_value = normalize_to_crore(raw_data)
+                extracted_excel_ans[key] = normalized_value
         
+        print(extracted_excel_ans)
         final_data = FinancialReportData(**extracted_excel_ans)
         kpis = calculate_kpis(final_data)
 
-        result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
-        print(result.content)
-        return result.content
+        session['financial_data'] = kpis
+        prompt = PromptTemplate.from_template("""
+            Act as a Chief Financial Officer (CFO) tasked with presenting a financial health report to the company's board of directors. Your analysis must be clear, concise, and grounded in the data provided.
+            All financial figures are in **Indian Rupees (INR Crores)**. Your entire analysis, including all summaries, risks, and recommendations, must be presented in this context. Do not use the word 'dollars' or the '$' symbol.
+                                              
+            Based **only** on the following Key Performance Indicators (KPIs), generate a markdown-formatted report that includes the following three sections:
 
+            1.  **### Financial Summary**
+                A brief, high-level overview of the company's performance.
 
+            2.  **### Key Risks & Opportunities**
+                A bulleted list identifying the most significant financial risks and potential opportunities, citing specific KPIs to support your points.
 
-        
-   
+            3.  **### Strategic Recommendations**
+                A bulleted list of 2-3 actionable recommendations for the leadership team to improve the company's financial position.
 
+            ---
+            **KPIs for Analysis:**
 
+            {kpis}
+        """)
 
+        prompt_final = prompt.invoke({'kpis':kpis})
+        final_analysis = model.invoke(prompt_final).content
+
+        final_response = {
+            "extracted_data": extracted_excel_ans,
+            "calculated_kpis": kpis,
+            "final_analysis": final_analysis
+        }
+
+        return jsonify(final_response)
 
 
 

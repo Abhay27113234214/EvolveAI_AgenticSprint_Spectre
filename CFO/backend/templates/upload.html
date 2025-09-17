@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Documents - Spectre</title>
+    <meta name="description"
+        content="Upload your financial documents (PDF, Excel) for AI-powered analysis and insights.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='../static/styles/st.css' ) }}">
+</head>
+
+<body class="layout-sidebar">
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="Spectre Home">
+                Spectre
+            </a>
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('upload_page') }}" class="active">Upload</a></li>
+                <li><a href="{{ url_for('risks' ) }}">Risks</a></li>
+                <li><a href="{{ url_for('insights' ) }}">Insights</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content upload">
+        <div class="container">
+            <!-- Page Header -->
+            <section class="text-center mb-xl" aria-labelledby="upload-title">
+                <h1 id="upload-title">Upload Financial Documents</h1>
+                <p class="mb-lg" style="max-width: 600px; margin: 0 auto; color: var(--text-secondary);">
+                    Upload your PDF files containing financial data. Our AI will automatically
+                    process and analyze your documents to provide comprehensive insights.
+                </p>
+            </section>
+
+            <!-- Upload Form -->
+            <section class="mb-xl">
+                <div class="card" style="max-width: 800px; margin: 0 auto;">
+                    <div class="card-header">
+                        <h2 class="card-title mb-0">Document Upload</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Simple Upload Form -->
+                        <form method="post" action="{{ url_for('uploadAnnualReport') }}" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="pdf_file" class="form-label">Select PDF File</label>
+                                <input type="file" id="pdf_file" name="report_file" accept=".pdf, .xlsx, .xls, .csv" class="form-control"
+                                    required>
+                            </div>
+
+                            <div class="text-center mt-lg">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    Upload Document
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='../static/scripts/app.js' ) }}" defer></script>
+    <script src="{{ url_for('static', filename='../static/scripts/utils.js' ) }}" defer></script>
+    
+</body>
+
+</html>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard - Spectre</title>
+    <meta name="description"
+        content="Real-time financial dashboard showing key metrics, KPIs, and performance indicators.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='../static/styles/st.css' ) }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    
+</head>
+
+<body class="layout-sidebar">
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="Spectre Home">
+                Spectre
+            </a>
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}" class="active" aria-current="page">Dashboard</a></li>
+                <li><a href="{{ url_for('upload_page') }}">Upload</a></li>
+                <li><a href="{{ url_for('risks' ) }}">Risks</a></li>
+                <li><a href="{{ url_for('insights' ) }}">Insights</a></li>
+            </ul>
+            <div style="margin-top:auto;"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content dashboard">
+        <div class="container" style="position: relative;">
+            <!-- Page Header -->
+            <!-- Page Header -->
+            <section class="mb-xl">
+                <div class="d-flex"
+                    style="align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h1>Financial Dashboard</h1>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            Real-time overview of your financial performance and key metrics
+                        </p>
+                    </div>
+                    <div class="d-flex" style="align-items:center; gap: var(--space-md); position: relative;">
+                        <span id="lastUpdated" style="color: var(--text-muted); font-size: var(--font-size-sm);">Last
+                            updated: Loading...</span>
+                        <button id="refreshBtn" class="btn btn-secondary" aria-label="Refresh dashboard data"
+                            style="flex-shrink:0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="23,4 23,10 17,10" />
+                                <polyline points="1,20 1,14 7,14" />
+                                <path d="m3.51,9a9,9 0 0 1 14.85-3.36L23,10M1,14l4.64,4.36A9,9 0 0 0 20.49,15" />
+                            </svg>
+                        </button>
+                        <div class="profile-menu" id="profileMenu" style="position: relative;">
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Spectre" alt="Profile"
+                                class="profile-avatar" id="profileAvatar">
+                            <div class="profile-dropdown" id="profileDropdown" role="menu" aria-hidden="true"
+                                style="right:0;">
+                                <a href="#" id="logoutLink">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center" style="padding: var(--space-2xl) 0;">
+                <div class="spinner" style="width: 40px; height: 40px;"></div>
+                <p class="mt-md">Loading financial data...</p>
+            </div>
+
+            <!-- Main Dashboard Content -->
+            <div id="dashboardContent" class="d-none">
+                <div class="bento-grid" style="display: flex; flex-wrap: wrap; width: 1000px;">
+                    <!-- KPIs full width -->
+                    <section class="tile tile--kpis" aria-labelledby="kpi-title">
+                        <h2 id="kpi-title" class="mb-lg">Key Performance Indicators</h2>
+                        <div class="grid grid-4" id="kpiGrid"></div>
+                    </section style="margin-bottom: -300px;">
+
+                    <!-- Cash Flow vs Burn (large) -->
+                    <section class="tile tile--cash" aria-labelledby="charts-title">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Cash Flow vs Burn Rate</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="cashFlowChart" style="height: 300px; position: relative;"></div>
+                                <div class="mt-md"
+                                    style="display: flex; justify-content: center; gap: var(--space-lg);">
+                                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                        <div
+                                            style="width: 12px; height: 12px; background-color: var(--success-color); border-radius: 50%;">
+                                        </div>
+                                        <span style="font-size: var(--font-size-sm);">Cash Inflow</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                        <div
+                                            style="width: 12px; height: 12px; background-color: var(--danger-color); border-radius: 50%;">
+                                        </div>
+                                        <span style="font-size: var(--font-size-sm);">Burn Rate</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Revenue Trend (tall) -->
+                    <section class="tile tile--revenue">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Annual Revenue Trend</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="revenueChartContainer"
+                                    style="position: relative; height: 335px; width: 250px; margin: auto;">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="tile tile--profit">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Annual Profit / Loss Trend</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="profitChartContainer"
+                                    style="position: relative; height: 300px; width: 250px; margin: auto;">
+                                    <canvas id="profitTrendChart"></canvas>
+                                </div>
+                                <div class="mt-md text-center">
+                                    <span style="font-size: var(--font-size-sm); color: var(--text-muted);">Annual
+                                        Performance</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+
+                    <section class="tile tile--structure">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Company Structure</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="structureChartContainer"
+                                    style="position: relative; height: 335px; width: 250px; margin: auto;">
+                                    <canvas id="structureChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+
+                    <section class="tile tile--liquidity">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Liquidity Health (Current Ratio)</h3>
+                            </div>
+                            <div class="card-body" style="position: relative;">
+                                <div id="gaugeChartContainer"
+                                    style="position: relative; height: 335px; width: 250px; margin: auto;">
+                                    <canvas id="liquidityGaugeChart"></canvas>
+                                    <div id="liquidityGaugeText"
+                                        style="position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); font-size: 2.5em; font-weight: bold;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+
+                    <!-- Balance Sheet Overview (half) -->
+                    <section class="tile tile--balance" aria-labelledby="summary-title">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Balance Sheet Overview</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="balanceSheetData"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Quick Actions (half) -->
+                    <section class="tile tile--actions">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Quick Actions</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex" style="flex-direction: column; gap: var(--space-md);">
+                                    <a href="{{ url_for('register') }}" class="btn btn-primary"
+                                        aria-label="Upload new financial documents">Upload New Documents</a>
+                                    <a href="risks.html" class="btn btn-warning"
+                                        aria-label="View risk assessment">Assess Risks</a>
+                                    <a href="insights.html" class="btn btn-success" aria-label="Chat with AI CFO">Ask AI
+                                        CFO</a>
+                                    <button id="exportBtn" class="btn btn-secondary"
+                                        aria-label="Export financial data">Export Data</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Recent Activities full width -->
+                    <section class="tile tile--activities" aria-labelledby="activities-title">
+                        <h2 id="activities-title" class="mb-lg">AI Financial Stand Analysis</h2>
+                        <div class="card">
+                            <div class="card-body">
+                                <div id="finalAnalysisText" style="white-space: pre-wrap; line-height: 1.6;"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="d-none text-center" style="padding: var(--space-2xl) 0;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--danger-color)"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-bottom: var(--space-lg);" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <h3>Unable to Load Dashboard</h3>
+                <p class="mb-lg" style="color: var(--text-secondary);">
+                    We're having trouble loading your financial data. This could be because no documents have been
+                    uploaded yet, or there's a temporary connection issue.
+                </p>
+                <div class="d-flex" style="justify-content: center; gap: var(--space-md);">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">Upload Documents</a>
+                    <button id="retryBtn" class="btn btn-secondary">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <!-- <script src="{{ url_for('static', filename='../static/scritps/utils.js' ) }}" defer></script>
+    <script src="{{ url_for('static', filename='../static/scritps/app.js' ) }}" defer></script> -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Basic UI functionality ---
+            const avatar = document.getElementById('profileAvatar');
+            const dropdown = document.getElementById('profileDropdown');
+            const logoutLink = document.getElementById('logoutLink');
+
+            if (avatar && dropdown) {
+                avatar.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                });
+                document.addEventListener('click', () => {
+                    dropdown.style.display = 'none';
+                });
+            }
+            if (logoutLink) {
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Basic logout, clear session/token and redirect
+                    localStorage.removeItem('cfo_token');
+                    window.location.href = "{{ url_for('login') }}"; // Or your logout route
+                });
+            }
+
+            // --- Core Data Fetching and Rendering Logic ---
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const dashboardContent = document.getElementById('dashboardContent');
+
+            // This function is called as soon as the page loads
+            async function fetchDashboardData() {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/api/get-dashboard-data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    renderDashboard(data);
+
+                } catch (error) {
+                    console.error("Failed to fetch dashboard data:", error);
+                    showErrorState();
+                }
+            }
+
+            // data = {
+            //     "extracted_data": {
+            //         "company_name": "Innovate Dynamics Inc.",
+            //         "fiscal_year": "FY25",
+            //         "revenue_current_year": 14500.0,
+            //         "revenue_previous_year": 9800.0,
+            //         "profit_after_tax_current_year": 550.0,
+            //         "profit_after_tax_previous_year": -980.0,
+            //         "total_liabilities": 5500.0,
+            //         "cash_reserves": 15200.0,
+            //         "net_cash_from_operations": 900.0,
+            //         "total_current_assets": 6500.0,
+            //         "total_current_liabilities": 2300.0,
+            //         "total_equity": 12000.0
+            //     },
+            //     "calculated_kpis": {
+            //         "revenue_growth_percent": 47.96,
+            //         "profit_margin_percent": 3.79,
+            //         "monthly_net_cash_flow": 75.0,
+            //         "monthly_burn_rate": 0,
+            //         "runway_months": "Infinite",
+            //         "current_ratio": 2.83,
+            //         "debt_to_equity_ratio": 0.46,
+            //         "return_on_equity_percent": 4.58
+            //     },
+            //     "final_analysis" :  "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Consectetur at quas obcaecati quod cupiditate rerum quidem. Autem dolor enim et nesciunt molestias! Minus, vel sunt voluptate qui ab quasi aliquam?"
+            // }
+            // renderDashboard(data);
+
+            function renderDashboard(data) {
+                // Hide loading and show the main content
+                loadingState.style.display = 'none';
+                dashboardContent.classList.remove('d-none');
+
+                // Update "Last Updated" time
+                document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+                // --- Populate your dashboard with the data ---
+
+                // 1. Populate the KPI Grid
+                const kpiGrid = document.getElementById('kpiGrid');
+                const kpis = data.calculated_kpis;
+                kpiGrid.innerHTML = ''; // Clear any old data
+
+                const kpiMapping = {
+                    'Revenue Growth': `${kpis.revenue_growth_percent}%`,
+                    'Profit Margin': `${kpis.profit_margin_percent}%`,
+                    'Current Ratio': kpis.current_ratio,
+                    'Debt-to-Equity': kpis.debt_to_equity_ratio,
+                    'Return on Equity': `${kpis.return_on_equity_percent}%`,
+                    'Runway': `${kpis.runway_months} months`,
+                };
+
+                for (const [label, value] of Object.entries(kpiMapping)) {
+                    // This creates a simple card structure for each KPI
+                    const kpiCard = document.createElement('div');
+                    kpiCard.className = 'kpi-card'; // You can style this in your CSS
+                    kpiCard.innerHTML = `
+                        <span class="kpi-label">${label}</span>
+                        <span class="kpi-value">${value}</span>
+                    `;
+                    kpiGrid.appendChild(kpiCard);
+                }
+
+                // 2. Populate the Balance Sheet Overview
+                const balanceSheetData = document.getElementById('balanceSheetData');
+                const extracted = data.extracted_data;
+                balanceSheetData.innerHTML = `
+                    <p><strong>Total Assets:</strong> ${extracted.total_current_assets} Cr</p>
+                    <p><strong>Total Liabilities:</strong> ${extracted.total_liabilities} Cr</p>
+                    <p><strong>Total Equity:</strong> ${extracted.total_equity} Cr</p>
+                `;
+
+                // 3. (Placeholder) Initialize your charts here
+                // Example: initializeRevenueChart(extracted.revenue_current_year, extracted.revenue_previous_year);
+                // Example: initializeCashFlowChart(kpis.monthly_net_cash_flow);
+
+
+
+                // === NEW LOGIC STARTS HERE ===
+
+                const cashFlowChart = document.getElementById('cashFlowChart');
+                if (cashFlowChart && kpis) {
+                    const monthlyCashFlow = kpis.monthly_net_cash_flow || 0;
+
+                    // Add some basic styling for the bar chart container
+                    cashFlowChart.style.borderLeft = '1px solid #e0e0e0';
+                    cashFlowChart.style.borderBottom = '1px solid #e0e0e0';
+                    cashFlowChart.style.display = 'flex';
+                    cashFlowChart.style.justifyContent = 'center';
+                    cashFlowChart.style.alignItems = 'flex-end';
+
+                    const bar = document.createElement('div');
+                    bar.style.width = '50px';
+                    bar.style.transition = 'height 0.5s ease-out';
+                    bar.style.textAlign = 'center';
+                    bar.style.color = 'white';
+                    bar.style.fontWeight = 'bold';
+
+                    if (monthlyCashFlow >= 0) {
+                        bar.style.backgroundColor = 'var(--success-color, #28a745)';
+                        const height = Math.min((monthlyCashFlow / 100) * 100, 100); // Scale height relative to a max of 100 Cr/month
+                        bar.style.height = `${height}%`;
+                        bar.textContent = `${monthlyCashFlow} Cr`;
+                    } else {
+                        bar.style.backgroundColor = 'var(--danger-color, #dc3545)';
+                        const height = Math.min((Math.abs(monthlyCashFlow) / 100) * 100, 100);
+                        bar.style.height = `${height}%`;
+                        bar.textContent = `${monthlyCashFlow} Cr`;
+                    }
+
+                    bar.title = `Monthly Net Cash Flow: ${monthlyCashFlow} Cr`;
+                    cashFlowChart.innerHTML = ''; // Clear previous chart
+                    cashFlowChart.appendChild(bar);
+                }
+
+
+
+                const revenueChartCtx = document.getElementById('revenueChart').getContext('2d');
+                if (revenueChartCtx && extracted) {
+                    // Destroy any old chart instance to prevent errors
+                    if (window.myRevenueChart instanceof Chart) {
+                        window.myRevenueChart.destroy();
+                    }
+
+                    // Create the new chart
+                    window.myRevenueChart = new Chart(revenueChartCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: [`Previous Year (FY${parseInt(extracted.fiscal_year) - 1})`, `Current Year (FY${extracted.fiscal_year})`],
+                            datasets: [{
+                                label: 'Annual Revenue (in Crores)',
+                                data: [
+                                    extracted.revenue_previous_year,
+                                    extracted.revenue_current_year
+                                ],
+                                backgroundColor: [
+                                    'rgba(108, 117, 125, 0.5)', // A neutral grey for previous year
+                                    'rgba(0, 123, 255, 0.7)'   // A strong blue for current year
+                                ],
+                                borderColor: [
+                                    'rgba(108, 117, 125, 1)',
+                                    'rgba(0, 123, 255, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false, // <-- This is the most important change!
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function (value) {
+                                            return value + ' Cr';
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+
+
+
+
+
+
+
+                const profitChartCtx = document.getElementById('profitTrendChart');
+                if (profitChartCtx && data.extracted_data) {
+                    const prevProfit = data.extracted_data.profit_after_tax_previous_year;
+                    const currProfit = data.extracted_data.profit_after_tax_current_year;
+
+                    // This logic sets the bar color to red for a loss and green for a profit
+                    const backgroundColors = [
+                        prevProfit < 0 ? 'rgba(220, 53, 69, 0.7)' : 'rgba(40, 167, 69, 0.7)', // Red for loss, Green for profit
+                        currProfit < 0 ? 'rgba(220, 53, 69, 0.7)' : 'rgba(40, 167, 69, 0.7)'
+                    ];
+
+                    const borderColors = [
+                        prevProfit < 0 ? 'rgba(220, 53, 69, 1)' : 'rgba(40, 167, 69, 1)',
+                        currProfit < 0 ? 'rgba(220, 53, 69, 1)' : 'rgba(40, 167, 69, 1)'
+                    ];
+
+                    // Destroy any old chart instance to prevent errors on refresh
+                    if (window.myProfitChart instanceof Chart) {
+                        window.myProfitChart.destroy();
+                    }
+
+                    window.myProfitChart = new Chart(profitChartCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: [`Previous Year (FY${parseInt(data.extracted_data.fiscal_year) - 1})`, `Current Year (FY${data.extracted_data.fiscal_year})`],
+                            datasets: [{
+                                label: 'Profit/Loss (in Crores)',
+                                data: [prevProfit, currProfit],
+                                backgroundColor: backgroundColors,
+                                borderColor: borderColors,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    ticks: {
+                                        callback: function (value) {
+                                            return value + ' Cr';
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+
+
+
+
+
+
+                const structureChartCtx = document.getElementById('structureChart');
+                if (structureChartCtx && data.extracted_data) {
+                    const totalLiabilities = data.extracted_data.total_liabilities;
+                    const totalEquity = data.extracted_data.total_equity;
+
+                    // Destroy any old chart instance
+                    if (window.myStructureChart instanceof Chart) {
+                        window.myStructureChart.destroy();
+                    }
+
+                    window.myStructureChart = new Chart(structureChartCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: [
+                                'Total Liabilities',
+                                'Total Equity'
+                            ],
+                            datasets: [{
+                                label: 'Composition (in Crores)',
+                                data: [totalLiabilities, totalEquity],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.7)', // A pink/red for liabilities
+                                    'rgba(54, 162, 235, 0.7)'  // A blue for equity
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom', // Move the labels to the bottom
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Assets = Liabilities + Equity'
+                                }
+                            }
+                        }
+                    });
+                }
+
+
+
+
+
+
+
+
+                // Add this block inside the renderDashboard(data) function
+
+                // --- Render the Liquidity Gauge Chart ---
+                const liquidityGaugeCtx = document.getElementById('liquidityGaugeChart');
+                if (liquidityGaugeCtx && data.calculated_kpis) {
+                    const currentRatio = data.calculated_kpis.current_ratio || 0;
+                    const gaugeText = document.getElementById('liquidityGaugeText');
+
+                    // Determine the color based on the ratio's value
+                    let gaugeColor = '#28a745'; // Green for safe (>= 2)
+                    if (currentRatio < 1) {
+                        gaugeColor = '#dc3545'; // Red for risky (< 1)
+                    } else if (currentRatio < 2) {
+                        gaugeColor = '#ffc107'; // Yellow for caution (1 to 2)
+                    }
+                    
+                    // Set the text in the middle of the gauge
+                    gaugeText.textContent = currentRatio;
+                    gaugeText.style.color = gaugeColor;
+
+                    // Destroy any old chart instance
+                    if (window.myGaugeChart instanceof Chart) {
+                        window.myGaugeChart.destroy();
+                    }
+
+                    window.myGaugeChart = new Chart(liquidityGaugeCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Current Ratio', 'Remainder'],
+                            datasets: [{
+                                // The first value is the ratio, the second is the "empty" part of the gauge
+                                // We'll set a max value of 4 for the gauge scale
+                                data: [currentRatio, 4 - currentRatio],
+                                backgroundColor: [
+                                    gaugeColor,
+                                    '#e9ecef' // A neutral grey for the empty part
+                                ],
+                                borderWidth: 0 // No borders for a smooth look
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '80%', // Makes the doughnut thinner
+                            rotation: -90,  // Starts the chart at the 9 o'clock position
+                            circumference: 180, // Makes it a half-circle instead of a full circle
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { enabled: false } // Disable tooltips for a clean look
+                            }
+                        }
+                    });
+                }
+
+
+
+                const finalAnalysisText = document.getElementById('finalAnalysisText'); // Corrected from recentActivities
+                if (finalAnalysisText && data.final_analysis) {
+                    // This formats the AI's markdown response into clean HTML
+                    const formattedAnalysis = data.final_analysis
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text for titles
+                        .replace(/\* (.*?)(?=\n\*|\n\n|$)/g, '<li>$1</li>') // List items
+                        .replace(/<\/li>\s*<li>/g, '</li><li>') 
+                        .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); // Wrap lists in <ul>
+                    finalAnalysisText.innerHTML = formattedAnalysis.replace(/\n/g, '<br>');
+                }
+            }
+
+            function showErrorState() {
+                loadingState.style.display = 'none';
+                errorState.classList.remove('d-none');
+            }
+
+            // --- Start the process when the page loads ---
+            fetchDashboardData();
+        });
+    </script>
+</body>
+
+</html>

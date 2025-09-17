@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights - Spectre</title>
+    <meta name="description" content="Chat with your AI CFO for intelligent financial insights and strategic guidance.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='../static/styles/st.css' ) }}">
+</head>
+
+<body class="layout-sidebar">
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="{{ url_for('index' ) }}" class="navbar-brand" aria-label="Spectre Home">
+                Spectre
+            </a>
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('index' ) }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard' ) }}">Dashboard</a></li>
+                <li><a href="{{ url_for('upload_page' ) }}">Upload</a></li>
+                <li><a href="{{ url_for('risks' ) }}">Risks</a></li>
+                <li><a href="{{ url_for('insights' ) }}" class="active">Insights</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content insights">
+        <div class="container">
+            <!-- Page Header -->
+            <section class="section-spacing">
+                <div class="text-center">
+                    <h1>AI Financial Insights</h1>
+                    <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+                        Get intelligent financial guidance and strategic insights from your AI CFO.
+                        Ask questions about your business finances and receive expert analysis.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Quick Suggestions -->
+            <section class="section-spacing" aria-labelledby="suggestions-title">
+                <h2 id="suggestions-title" class="text-center mb-lg">Ask Your AI CFO</h2>
+                <div class="grid grid-3" id="quickSuggestions">
+                    <div class="card" role="button" tabindex="0" data-question="What is my current cash runway?"
+                        aria-label="Ask about cash runway">
+                        <div class="card-body text-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-bottom: var(--space-sm);" aria-hidden="true">
+                                <line x1="12" y1="1" x2="12" y2="23" />
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                            <h4 class="card-title">Cash Runway</h4>
+                            <p class="card-text" style="font-size: var(--font-size-sm);">How long will my cash last?</p>
+                        </div>
+                    </div>
+
+                    <div class="card" role="button" tabindex="0"
+                        data-question="What are the biggest financial risks I should be concerned about?"
+                        aria-label="Ask about financial risks">
+                        <div class="card-body text-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--warning-color)"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-bottom: var(--space-sm);" aria-hidden="true">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <h4 class="card-title">Risk Analysis</h4>
+                            <p class="card-text" style="font-size: var(--font-size-sm);">What risks should I watch?</p>
+                        </div>
+                    </div>
+
+                    <div class="card" role="button" tabindex="0" data-question="How can I improve my cash flow?"
+                        aria-label="Ask about cash flow improvement">
+                        <div class="card-body text-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-bottom: var(--space-sm);" aria-hidden="true">
+                                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
+                            </svg>
+                            <h4 class="card-title">Cash Flow</h4>
+                            <p class="card-text" style="font-size: var(--font-size-sm);">How to optimize cash flow?</p>
+                        </div>
+                    </div>
+
+                    <div class="card" role="button" tabindex="0"
+                        data-question="What are my key financial metrics telling me?"
+                        aria-label="Ask about financial metrics">
+                        <div class="card-body text-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-bottom: var(--space-sm);" aria-hidden="true">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <line x1="9" y1="9" x2="9" y2="15" />
+                                <line x1="15" y1="9" x2="15" y2="15" />
+                                <line x1="12" y1="6" x2="12" y2="18" />
+                            </svg>
+                            <h4 class="card-title">Key Metrics</h4>
+                            <p class="card-text" style="font-size: var(--font-size-sm);">Analyze my performance</p>
+                        </div>
+                    </div>
+
+                    <div class="card" role="button" tabindex="0"
+                        data-question="Should I be concerned about my debt levels?" aria-label="Ask about debt levels">
+                        <div class="card-body text-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--secondary-color)"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-bottom: var(--space-sm);" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="6" x2="12" y2="10" />
+                                <line x1="12" y1="14" x2="12" y2="18" />
+                            </svg>
+                            <h4 class="card-title">Debt Analysis</h4>
+                            <p class="card-text" style="font-size: var(--font-size-sm);">Assess debt levels</p>
+                        </div>
+                    </div>
+
+                    <div class="card" role="button" tabindex="0"
+                        data-question="What growth opportunities do you see in my financials?"
+                        aria-label="Ask about growth opportunities">
+                        <div class="card-body text-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="margin-bottom: var(--space-sm);" aria-hidden="true">
+                                <polyline points="23,6 13.5,15.5 8.5,10.5 1,18" />
+                                <polyline points="17,6 23,6 23,12" />
+                            </svg>
+                            <h4 class="card-title">Growth Ideas</h4>
+                            <p class="card-text" style="font-size: var(--font-size-sm);">Find growth opportunities</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat Interface -->
+            <section class="section-spacing" aria-labelledby="chat-title">
+                <h2 id="chat-title" class="sr-only">Chat Interface</h2>
+                <div class="card">
+                    <div class="chat-container">
+                        <!-- Chat Messages -->
+                        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"
+                            aria-label="Chat conversation">
+                            <div class="chat-message assistant">
+                                <div style="display: flex; align-items: start; gap: var(--space-sm);">
+                                    <div
+                                        style="width: 32px; height: 32px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                            aria-hidden="true">
+                                            <path
+                                                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <strong style="font-size: var(--font-size-sm); color: var(--primary-color);">AI
+                                            CFO</strong>
+                                        <p style="margin: var(--space-xs) 0 0 0;">
+                                            Hello! I'm your AI CFO assistant. I'm here to help you understand your
+                                            financial situation,
+                                            identify risks and opportunities, and provide strategic guidance. What would
+                                            you like to know about your business finances?
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="chat-input-area">
+                            <form id="chatForm" class="d-flex" style="gap: var(--space-md); width: 100%;">
+                                <input type="text" id="chatInput" class="form-control chat-input"
+                                    placeholder="Ask me anything about your finances..." aria-label="Chat message input"
+                                    autocomplete="off" maxlength="500">
+                                <button type="submit" class="btn btn-primary" id="sendButton" aria-label="Send message"
+                                    style="flex-shrink: 0;">
+                                    <span class="send-text">Send</span>
+                                    <span class="spinner d-none" style="width: 16px; height: 16px;"
+                                        aria-hidden="true"></span>
+                                    <svg class="send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" aria-hidden="true">
+                                        <line x1="22" y1="2" x2="11" y2="13" />
+                                        <polygon points="22,2 15,22 11,13 2,9 22,2" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Chat Actions -->
+                    <div class="card-body" style="border-top: 1px solid var(--border-color);">
+                        <div class="d-flex"
+                            style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md);">
+                            <div>
+                                <span style="font-size: var(--font-size-sm); color: var(--text-muted);">
+                                    <strong id="messageCount">1</strong> messages in conversation
+                                </span>
+                            </div>
+                            <div class="d-flex" style="gap: var(--space-sm);">
+                                <button id="clearChatBtn" class="btn btn-secondary" aria-label="Clear chat history">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        aria-hidden="true">
+                                        <polyline points="3,6 5,6 21,6" />
+                                        <path
+                                            d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+                                    </svg>
+                                    Clear
+                                </button>
+                                <button id="exportChatBtn" class="btn btn-secondary"
+                                    aria-label="Export chat conversation">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        aria-hidden="true">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7,10 12,15 17,10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Help Section -->
+            <section class="section-spacing" aria-labelledby="help-title">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="help-title" class="card-title">Tips for Better Insights</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-2">
+                            <div>
+                                <h4
+                                    style="color: var(--primary-color); font-size: var(--font-size-base); margin-bottom: var(--space-sm);">
+                                    Ask Specific Questions
+                                </h4>
+                                <ul style="color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                    <li>"What's my current debt-to-equity ratio?"</li>
+                                    <li>"How does my burn rate compare to last quarter?"</li>
+                                    <li>"Should I be worried about my working capital?"</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4
+                                    style="color: var(--primary-color); font-size: var(--font-size-base); margin-bottom: var(--space-sm);">
+                                    Strategic Guidance
+                                </h4>
+                                <ul style="color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                    <li>"What growth strategies do you recommend?"</li>
+                                    <li>"How can I optimize my cost structure?"</li>
+                                    <li>"What are the best investment opportunities?"</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>

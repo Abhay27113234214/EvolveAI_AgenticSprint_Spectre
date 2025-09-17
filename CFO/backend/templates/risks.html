@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Assessment - Spectre</title>
+    <meta name="description" content="Comprehensive risk analysis with color-coded alerts and actionable insights.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='../static/styles/st.css') }}">
+</head>
+
+<body class="layout-sidebar">
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="{{ url_for('index' ) }}" class="navbar-brand" aria-label="AI CFO Assistant Home">
+                Spectre
+            </a>
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}" >Dashboard</a></li>
+                <li><a href="{{ url_for('upload_page') }}">Upload</a></li>
+                <li><a href="{{ url_for('risks' ) }}" class="active">Risks</a></li>
+                <li><a href="{{ url_for('insights' ) }}">Insights</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content risks">
+        <div class="container">
+            <!-- Page Header -->
+            <section class="mb-xl">
+                <div class="d-flex"
+                    style="align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h1>Risk Assessment</h1>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            AI-powered financial risk analysis with color-coded alerts and actionable recommendations
+                        </p>
+                    </div>
+                    <div>
+                        <span id="riskLastUpdated" style="color: var(--text-muted); font-size: var(--font-size-sm);">
+                            Last updated: Loading...
+                        </span>
+                        <button class="btn btn-secondary ml-md" onclick="refreshRiskAnalysis()"
+                            aria-label="Refresh risk analysis">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="23,4 23,10 17,10" />
+                                <polyline points="1,20 1,14 7,14" />
+                                <path d="m3.51,9a9,9 0 0 1 14.85-3.36L23,10M1,14l4.64,4.36A9,9 0 0 0 20.49,15" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div id="riskLoadingState" class="text-center" style="padding: var(--space-2xl) 0;">
+                <div class="spinner" style="width: 40px; height: 40px;"></div>
+                <p class="mt-md">Analyzing financial risks...</p>
+            </div>
+
+            <!-- Risk Overview -->
+            <div id="riskContent" class="d-none">
+                <section class="mb-xl" aria-labelledby="risk-overview-title">
+                    <h2 id="risk-overview-title" class="mb-lg">Risk Overview</h2>
+                    <div class="grid grid-3" id="riskOverview">
+                        <!-- Risk overview cards will be populated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Risk Alerts -->
+                <section class="mb-xl" aria-labelledby="risk-alerts-title">
+                    <h2 id="risk-alerts-title" class="mb-lg">Active Risk Alerts</h2>
+                    <div id="riskAlerts">
+                        <!-- Risk alerts will be populated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Risk Categories -->
+                <section class="mb-xl" aria-labelledby="risk-categories-title">
+                    <h2 id="risk-categories-title" class="mb-lg">Risk Categories</h2>
+                    <div class="grid grid-2">
+                        <!-- Financial Risks -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Financial Risks</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="financialRisks">
+                                    <!-- Financial risks will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Operational Risks -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Operational Risks</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="operationalRisks">
+                                    <!-- Operational risks will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Market Risks -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Market & External Risks</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="marketRisks">
+                                    <!-- Market risks will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compliance Risks -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Compliance & Regulatory</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="complianceRisks">
+                                    <!-- Compliance risks will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Risk Mitigation Recommendations -->
+                <section class="mb-xl" aria-labelledby="mitigation-title">
+                    <h2 id="mitigation-title" class="mb-lg">Risk Mitigation Recommendations</h2>
+                    <div id="mitigationRecommendations">
+                        <!-- Mitigation recommendations will be populated here -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Error State -->
+            <div id="riskErrorState" class="d-none text-center" style="padding: var(--space-2xl) 0;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--danger-color)"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-bottom: var(--space-lg);" aria-hidden="true">
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <h3>Unable to Load Risk Analysis</h3>
+                <p class="mb-lg" style="color: var(--text-secondary);">
+                    We're unable to perform risk analysis at this time. This could be because no financial data has been
+                    uploaded yet, or there's a temporary connection issue.
+                </p>
+                <div class="d-flex" style="justify-content: center; gap: var(--space-md);">
+                    <a href="{{ url_for('upload_page' ) }}" class="btn btn-primary">Upload Documents</a>
+                    <button class="btn btn-secondary" onclick="refreshRiskAnalysis()">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Risk Detail Modal -->
+    <div id="riskDetailModal" class="d-none"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; display: none;"
+        aria-hidden="true" role="dialog" aria-labelledby="risk-detail-title">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <div class="card-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+                <div class="d-flex" style="align-items: center; justify-content: space-between;">
+                    <h3 id="risk-detail-title" class="card-title mb-0">Risk Details</h3>
+                    <button class="btn btn-secondary" onclick="closeRiskModal()" aria-label="Close modal"
+                        style="padding: var(--space-sm);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body" id="riskDetailContent">
+                <!-- Risk detail content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/utils.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingState = document.getElementById('riskLoadingState');
+            const contentState = document.getElementById('riskContent');
+            const errorState = document.getElementById('riskErrorState');
+
+            async function fetchRiskAnalysis() {
+                try {
+                    const response = await fetch('/api/get-risk-analysis', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (!response.ok) throw new Error('Server error');
+                    
+                    const data = await response.json();
+                    renderRiskDashboard(data);
+
+                } catch (error) {
+                    console.error("Failed to fetch risk analysis:", error);
+                    showErrorState();
+                }
+            }
+
+            function renderRiskDashboard(data) {
+                loadingState.style.display = 'none';
+                contentState.style.display = 'block';
+
+                // --- 1. Populate Risk Overview Cards ---
+                const riskOverview = document.getElementById('riskOverview');
+                riskOverview.innerHTML = ''; // Clear old data
+                
+                const overallScore = data.overall_risk_score || 0;
+                let scoreColor = overallScore > 66 ? '#dc3545' : (overallScore > 33 ? '#ffc107' : '#28a745');
+                
+                riskOverview.innerHTML += `
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h4>Overall Risk Score</h4>
+                            <div style="font-size: 3em; font-weight: bold; color: ${scoreColor};">${overallScore} / 100</div>
+                        </div>
+                    </div>
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h4>Financial Risks</h4>
+                            <div style="font-size: 3em; font-weight: bold;">${data.financial_risks.length}</div>
+                        </div>
+                    </div>
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h4>Operational Risks</h4>
+                            <div style="font-size: 3em; font-weight: bold;">${data.operational_risks.length}</div>
+                        </div>
+                    </div>
+                `;
+
+                // --- 2. Populate Active Risk Alerts (for High risks) ---
+                const riskAlerts = document.getElementById('riskAlerts');
+                riskAlerts.innerHTML = '';
+                const highRisks = data.financial_risks.concat(data.operational_risks, data.market_risks).filter(r => r.risk_level === 'High');
+                
+                if (highRisks.length > 0) {
+                    highRisks.forEach(risk => {
+                        riskAlerts.innerHTML += `
+                            <div class="card" style="margin-bottom: 1rem; border-left: 5px solid #dc3545;">
+                                <div class="card-body">
+                                    <strong>${risk.risk_title} (High Risk):</strong> ${risk.description}
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    riskAlerts.innerHTML = '<p>No high-risk alerts found. The company\'s financial position appears stable.</p>';
+                }
+
+                // --- 3. Populate Risk Category Cards ---
+                populateRiskCategory('financialRisks', data.financial_risks);
+                populateRiskCategory('operationalRisks', data.operational_risks);
+                populateRiskCategory('marketRisks', data.market_risks);
+                populateRiskCategory('complianceRisks', data.compliance_risks)
+
+                const mitigationRecommendations = document.getElementById('mitigationRecommendations');
+                if (mitigationRecommendations && data.mitigation_recommendations) {
+                    mitigationRecommendations.innerHTML = ''; 
+                    
+                    const recommendationsList = document.createElement('ul');
+                    data.mitigation_recommendations.forEach(rec => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = rec;
+                        recommendationsList.appendChild(listItem);
+                    });
+                    
+                    mitigationRecommendations.appendChild(recommendationsList);
+                }
+
+            }
+            
+            function populateRiskCategory(elementId, risks) {
+                const container = document.getElementById(elementId);
+                container.innerHTML = '';
+                if (risks && risks.length > 0) {
+                    risks.forEach(risk => {
+                        let levelColor = risk.risk_level === 'High' ? '#dc3545' : (risk.risk_level === 'Medium' ? '#ffc107' : '#28a745');
+                        container.innerHTML += `
+                            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+                                <h5>${risk.risk_title} [<span style="color: ${levelColor};">${risk.risk_level}</span>]</h5>
+                                <p style="font-size: 0.9rem;"><strong>Description:</strong> ${risk.description}</p>
+                                <p style="font-size: 0.9rem;"><strong>Recommendation:</strong> ${risk.recommendation}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = '<p>No specific risks identified in this category.</p>';
+                }
+            }
+
+            function showErrorState() {
+                loadingState.style.display = 'none';
+                errorState.classList.remove('d-none');
+            }
+
+            fetchRiskAnalysis();
+        });
+    </script>
+</body>
+
+</html>
