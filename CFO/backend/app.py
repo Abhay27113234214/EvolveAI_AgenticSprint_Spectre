@@ -9,8 +9,6 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
@@ -22,10 +20,8 @@ from functools import wraps
 from datetime import datetime
 from flask_restful import Api, Resource
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from flask_restful import Api
 from flask_login import LoginManager,UserMixin,login_required, login_user, logout_user, current_user
 from flask import jsonify
-from datetime import datetime
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
@@ -42,11 +38,16 @@ app = Flask(__name__, static_folder="static")
 jwt.init_app(app)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 api = Api(app)
-app.config["JWT_SECRET_KEY"] = "super-secret"
+
+# Load environment variables
+load_dotenv()
+
+# Configuration with environment variables
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-this")
 basedir=os.path.abspath(os.path.dirname(__file__))
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir,"app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SECRET_KEY'] = 'projectbangayaapna'
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'your-flask-secret-key-change-this')
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 UPLOAD_FOLDER = 'uploads'
@@ -68,8 +69,7 @@ def load_user(user_id):
 
 
 # the langchain code 
-load_dotenv()
-FAISS_INDEX_PATH = "C:/Users/abhay/Desktop/CFO/backend/faiss_index"
+FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", os.path.join(basedir, "faiss_index"))
 model = ChatGoogleGenerativeAI(model='gemini-1.5-flash')
 class FinancialReportData(BaseModel):
     company_name: str = Field(description="Name of the company")
@@ -246,7 +246,7 @@ def register():
         full_name = request.form.get('full_name')
         work_email = request.form.get('work_email')
         job_title = request.form.get('job_title')
-        company_name = request.form.get('comapny_name')
+        company_name = request.form.get('company_name')
         password = request.form.get('password')
 
         if User.query.filter_by(work_email=work_email).first():
@@ -264,7 +264,7 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
-        flash("Registeration Successfull! Please login.", "success")
+        flash("Registration Successful! Please login.", "success")
         return redirect(url_for("login"))
     
     return render_template("register.html")
@@ -277,12 +277,11 @@ def login():
     if request.method == "POST":
         work_email = request.form.get("work_email")
         password = request.form.get("password")
-        job_title = request.form.get("job_title")
-        user = User.query.filter_by(work_email = work_email, job_title = job_title).first()
+        user = User.query.filter_by(work_email = work_email).first()
         if user and user.check_password(password):
             login_user(user)
             flash("Login successful!", "success")
-            return redirect(url_for('home'))
+            return redirect(url_for('dashboard'))
         else:
             flash("Invalid credentials!", "danger")
             return redirect(url_for("register"))
@@ -312,11 +311,11 @@ def uploadAnnualPdf():
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(save_path)
         session['uploaded_file_path'] = save_path
-        flash("file upload Successfull!", "success")
+        flash("File upload successful!", "success")
         return redirect(url_for("dashboard"))
     else:
-        flash("File upload Not Successfull!", "danger")
-        return "invlaid file type. Only pdfs are allowed."
+        flash("File upload not successful!", "danger")
+        return "Invalid file type. Only PDFs are allowed."
 
 
 @app.route("/upload", methods=["GET"])
@@ -325,83 +324,103 @@ def upload_page():
     return render_template("upload.html")
 
 
+@app.route("/risks")
+@login_required
+def risks():
+    return render_template("risks.html")
+
+
+@app.route("/monitoring")
+@login_required
+def monitoring():
+    return render_template("monitoring.html")
+
+
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
-
-    print("Loading pre-built FAISS index...")
-    vector_store = FAISS.load_local(
-        FAISS_INDEX_PATH,
-        embedding_model,
-        allow_dangerous_deserialization=True
-    )
-    retriever = vector_store.as_retriever(search_kwargs={'k': 5})
-    print("Index loaded successfully.")
-
-    questions = {
-        "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
-        "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
-        "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
-        "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
-        "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
-        "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
-        "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
-        "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
-        "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
-        "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
-        "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
-    }
-
-    extracted_answers = {"company_name": str(current_user.company_name)}
-    
-    extraction_model = model.with_structured_output(ExtractedValue)
-    extraction_prompt = PromptTemplate.from_template(
-        """Based ONLY on the following CONTEXT, extract the value and unit for the requested metric.
-           - Pay close attention to words like "loss" or numbers in parentheses like (971). These indicate a negative number, and you MUST return a negative value (e.g., -971).
-
-        CONTEXT:
-        {context}
+    try:
+        print("Loading pre-built FAISS index...")
+        if not os.path.exists(FAISS_INDEX_PATH):
+            flash("FAISS index not found. Please upload a document first.", "warning")
+            return redirect(url_for('upload_page'))
         
-        METRIC:
-        {question}
-        """
-    )
-    extraction_chain = extraction_prompt | extraction_model
+        vector_store = FAISS.load_local(
+            FAISS_INDEX_PATH,
+            embedding_model,
+            allow_dangerous_deserialization=True
+        )
+        retriever = vector_store.as_retriever(search_kwargs={'k': 5})
+        print("Index loaded successfully.")
 
-    for key, question in questions.items():
-        print(f"Processing: {key}...")
+        questions = {
+            "fiscal_year": "What is the fiscal year mentioned on the cover of the Annual Report?",
+            "revenue_current_year": "What is the 'Revenue from operations' for the current fiscal year (FY24)?",
+            "revenue_previous_year": "What is the 'Revenue from operations' for the previous fiscal year (FY23)?",
+            "profit_after_tax_current_year": "What is the 'Profit / (loss) for the year' for the current fiscal year (FY24)?",
+            "profit_after_tax_previous_year": "What is the 'Profit / (loss) for the year' for the previous fiscal year (FY23)?",
+            "total_liabilities": "What is the value for 'Total liabilities' on the CONSOLIDATED Balance Sheet in the CONSOLIDATED FINANCIAL STATEMENT for the current year?",
+            "cash_reserves": "What is the 'CONSOLIDATED cash balance' in the CONSOLIDATED FINANCIAL STATEMENT as of the end of the current fiscal year?",
+            "net_cash_from_operations": "What is the value for 'Net cash generated from / (used in) operating activities' for the current fiscal year?",
+            "total_current_assets": "What is the value for 'Total current assets' on the Consolidated Balance Sheet for the current fiscal year?",
+            "total_current_liabilities": "What is the value for 'Total current liabilities' on the Consolidated Balance Sheet for the current fiscal year?",
+            "total_equity":"What is the value for 'Total equity' on the Consolidated Balance Sheet for the current fiscal year?"
+        }
+
+        extracted_answers = {"company_name": str(current_user.company_name)}
         
-        if key in [ "fiscal_year"]:
+        extraction_model = model.with_structured_output(ExtractedValue)
+        extraction_prompt = PromptTemplate.from_template(
+            """Based ONLY on the following CONTEXT, extract the value and unit for the requested metric.
+               - Pay close attention to words like "loss" or numbers in parentheses like (971). These indicate a negative number, and you MUST return a negative value (e.g., -971).
+
+            CONTEXT:
+            {context}
+            
+            METRIC:
+            {question}
+            """
+        )
+        extraction_chain = extraction_prompt | extraction_model
+
+        for key, question in questions.items():
+            print(f"Processing: {key}...")
+            
+            if key in [ "fiscal_year"]:
+                retrieved_docs = retriever.invoke(question)
+                context_string = format_docs(retrieved_docs)
+                simple_chain = PromptTemplate.from_template("From the context: {context}, answer the question: {question}. Respond with only the answer.") | model | StrOutputParser()
+                answer = simple_chain.invoke({"context": context_string, "question": question})
+                extracted_answers[key] = answer
+                print(f"  -> Raw Text Answer: '{answer}'")
+                continue
+
             retrieved_docs = retriever.invoke(question)
             context_string = format_docs(retrieved_docs)
-            simple_chain = PromptTemplate.from_template("From the context: {context}, answer the question: {question}. Respond with only the answer.") | model | StrOutputParser()
-            answer = simple_chain.invoke({"context": context_string, "question": question})
-            extracted_answers[key] = answer
-            print(f"  -> Raw Text Answer: '{answer}'")
-            continue
+            
+            raw_extracted_data = extraction_chain.invoke({
+                "context": context_string,
+                "question": question
+            })
+            print(f"  -> Raw Extracted Data: {raw_extracted_data}")
+            
+            normalized_value = normalize_to_crore(raw_extracted_data)
+            print(f"  -> Normalized Value (in Crores): {normalized_value}")
+            
+            extracted_answers[key] = normalized_value
 
-        retrieved_docs = retriever.invoke(question)
-        context_string = format_docs(retrieved_docs)
-        
-        raw_extracted_data = extraction_chain.invoke({
-            "context": context_string,
-            "question": question
-        })
-        print(f"  -> Raw Extracted Data: {raw_extracted_data}")
-        
-        normalized_value = normalize_to_crore(raw_extracted_data)
-        print(f"  -> Normalized Value (in Crores): {normalized_value}")
-        
-        extracted_answers[key] = normalized_value
+        final_data = FinancialReportData(**extracted_answers)
 
-    final_data = FinancialReportData(**extracted_answers)
+        kpis = calculate_kpis(final_data)
 
-    kpis = calculate_kpis(final_data)
+        result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
 
-    result = model.invoke(f"{kpis} these are some of the financial calculations that for a company annually, explain where the company stands financially and if there any risks or improvements that the company can do to imporve their stand financially.")
-
-    return result.content
+        return result.content
+    except Exception as e:
+        print(f"Error in dashboard: {str(e)}")
+        flash("An error occurred while processing your request. Please try again.", "danger")
+        return redirect(url_for('home'))
    
 
 
@@ -414,74 +433,110 @@ def dashboard():
 
 
 # api resources 
-class userRegisterResource(Resource):
+class UserRegisterResource(Resource):
     def post(self):
-        data = request.get_json()
-        username = data.get('username')
-        email = data.get('email')
-        password = data.get('password')
-        if User.query.filter_by(email=email).first():
-            return {'message':'User already exists. Try Logging in'}, 400
-        if username and email and password:
+        try:
+            data = request.get_json()
+            if not data:
+                return {'message': 'No data provided'}, 400
+                
+            full_name = data.get('full_name')
+            work_email = data.get('work_email')
+            password = data.get('password')
+            job_title = data.get('job_title')
+            company_name = data.get('company_name')
+            
+            if User.query.filter_by(work_email=work_email).first():
+                return {'message': 'User already exists. Try logging in'}, 400
+                
+            if not all([full_name, work_email, password]):
+                return {'message': 'Missing required fields'}, 400
+                
             new_user = User(
-                userName=username,
-                email=email
+                full_name=full_name,
+                work_email=work_email,
+                job_title=job_title,
+                company_name=company_name
             )
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
-            return {'message':'User registered successfully'}, 201
-        else:
-            return {'message':'error'}, 400
+            return {'message': 'User registered successfully'}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {'message': f'Registration failed: {str(e)}'}, 500
 
 
-class userLoginResource(Resource):
+class UserLoginResource(Resource):
     def post(self):
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        user = User.query.filter_by(email=email).first()
-        if user and user.check_password(password):
-            access_token = create_access_token(identity=user.email)
-            return {'access_token':access_token}, 200   
-        return {'message':'Invalid Credentials'}
+        try:
+            data = request.get_json()
+            if not data:
+                return {'message': 'No data provided'}, 400
+                
+            work_email = data.get('work_email')
+            password = data.get('password')
+            
+            if not work_email or not password:
+                return {'message': 'Email and password are required'}, 400
+                
+            user = User.query.filter_by(work_email=work_email).first()
+            if user and user.check_password(password):
+                access_token = create_access_token(identity=user.work_email)
+                return {'access_token': access_token}, 200   
+            return {'message': 'Invalid Credentials'}, 401
+        except Exception as e:
+            return {'message': f'Login failed: {str(e)}'}, 500
 
 
 class GetQueryResource(Resource):
     @jwt_required() 
     def post(self):
-        identity = get_jwt_identity()
-        user = User.query.filter_by(email=identity).first()
-        chat_messages = ChatMessage.query.filter_by(user_id=user.id).order_by(ChatMessage.timestamp).all()
-        chat_history_for_chain = []
-        for msg in chat_messages:
-            if msg.is_user_message:
-                chat_history_for_chain.append(HumanMessage(content=msg.message))
-            else:
-                chat_history_for_chain.append(AIMessage(content=msg.message))
-        data = request.get_json()
-        query = data.get('query')
-        result = model.invoke(query)
-        return result.content
+        try:
+            identity = get_jwt_identity()
+            user = User.query.filter_by(work_email=identity).first()
+            if not user:
+                return {'message': 'User not found'}, 404
+                
+            chat_messages = ChatMessage.query.filter_by(user_id=user.id).order_by(ChatMessage.timestamp).all()
+            chat_history_for_chain = []
+            for msg in chat_messages:
+                if msg.is_user_message:
+                    chat_history_for_chain.append(HumanMessage(content=msg.message))
+                else:
+                    chat_history_for_chain.append(AIMessage(content=msg.message))
+                    
+            data = request.get_json()
+            if not data or not data.get('query'):
+                return {'message': 'Query is required'}, 400
+                
+            query = data.get('query')
+            result = model.invoke(query)
+            return {'response': result.content}
+        except Exception as e:
+            return {'message': f'Query failed: {str(e)}'}, 500
 
 class UploadAnnualReportPdf(Resource):
     # @jwt_required()
     def post(self):
-        if 'pdf_file' not in request.files:
-            return 'No files passed!'
+        try:
+            if 'pdf_file' not in request.files:
+                return {'message': 'No files passed!'}, 400
 
-        file = request.files['pdf_file']
-        
-        if file.filename == "":
-            return 'No file selected!'
-        
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-            return f"File {filename} uploaded successfully!"
-        else:
-            return "invlaid file type. Only pdfs are allowed."
+            file = request.files['pdf_file']
+            
+            if file.filename == "":
+                return {'message': 'No file selected!'}, 400
+            
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(save_path)
+                return {'message': f"File {filename} uploaded successfully!", 'filename': filename}, 200
+            else:
+                return {'message': "Invalid file type. Only PDFs are allowed."}, 400
+        except Exception as e:
+            return {'message': f'Upload failed: {str(e)}'}, 500
 
 
 
@@ -490,8 +545,8 @@ class UploadAnnualReportPdf(Resource):
 
 # api endpoints  
 api.add_resource(GetQueryResource, '/api/query')
-api.add_resource(userRegisterResource, '/api/user/register')
-api.add_resource(userLoginResource, '/api/user/login')
+api.add_resource(UserRegisterResource, '/api/user/register')
+api.add_resource(UserLoginResource, '/api/user/login')
 api.add_resource(UploadAnnualReportPdf, '/api/uploadAnnualReportPdf')
 
 

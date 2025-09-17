@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Monitoring - Spectre</title>
+    <meta name="description"
+        content="Monitor financial anomalies and view scenario-based forecasts for proactive financial management.">
+    <link rel="stylesheet" href="css/styles.css?v=3.0">
+</head>
+
+<body class="layout-sidebar">
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="index.html" class="navbar-brand" aria-label="AI CFO Assistant Home">
+                Spectre
+            </a>
+            <ul class="navbar-nav">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="upload.html">Upload</a></li>
+                <li><a href="risks.html">Risks</a></li>
+                <li><a href="insights.html">Insights</a></li>
+                <li><a href="monitoring.html" class="active" aria-current="page">Monitoring</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content monitoring">
+        <div class="container">
+            <!-- Page Header -->
+            <section class="mb-xl">
+                <div class="d-flex"
+                    style="align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h1>Financial Monitoring</h1>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            Track financial anomalies and view scenario-based forecasts for proactive management
+                        </p>
+                    </div>
+                    <div>
+                        <span id="monitoringLastUpdated"
+                            style="color: var(--text-muted); font-size: var(--font-size-sm);">
+                            Last updated: Loading...
+                        </span>
+                        <button class="btn btn-secondary ml-md" onclick="refreshMonitoring()"
+                            aria-label="Refresh monitoring data">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="23,4 23,10 17,10" />
+                                <polyline points="1,20 1,14 7,14" />
+                                <path d="m3.51,9a9,9 0 0 1 14.85-3.36L23,10M1,14l4.64,4.36A9,9 0 0 0 20.49,15" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div id="monitoringLoadingState" class="text-center" style="padding: var(--space-2xl) 0;">
+                <div class="spinner" style="width: 40px; height: 40px;"></div>
+                <p class="mt-md">Loading monitoring data...</p>
+            </div>
+
+            <!-- Monitoring Dashboard -->
+            <div id="monitoringContent" class="d-none">
+                <!-- Monitoring Overview -->
+                <section class="mb-xl" aria-labelledby="monitoring-overview-title">
+                    <h2 id="monitoring-overview-title" class="mb-lg">Monitoring Overview</h2>
+                    <div class="grid grid-4" id="monitoringOverview">
+                        <!-- Monitoring overview cards will be populated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Recent Anomalies -->
+                <section class="mb-xl" aria-labelledby="anomalies-title">
+                    <h2 id="anomalies-title" class="mb-lg">Recent Anomalies</h2>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex" style="align-items: center; justify-content: space-between;">
+                                <h3 class="card-title mb-0">Detected Anomalies</h3>
+                                <select class="form-control" style="width: auto;" id="anomalyFilter"
+                                    aria-label="Filter anomalies">
+                                    <option value="all">All Anomalies</option>
+                                    <option value="high">High Priority</option>
+                                    <option value="medium">Medium Priority</option>
+                                    <option value="low">Low Priority</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="anomaliesList">
+                                <!-- Anomalies will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Scenario Forecasts -->
+                <section class="mb-xl" aria-labelledby="forecasts-title">
+                    <h2 id="forecasts-title" class="mb-lg">Scenario Forecasts</h2>
+                    <div class="grid grid-2">
+                        <!-- Forecast Chart -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">6-Month Financial Projections</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-md">
+                                    <div class="d-flex" style="gap: var(--space-sm); flex-wrap: wrap;" role="group"
+                                        aria-label="Scenario selection">
+                                        <button class="btn btn-secondary btn-sm active" data-scenario="optimistic"
+                                            onclick="selectScenario('optimistic')" aria-pressed="false">
+                                            Optimistic
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" data-scenario="realistic"
+                                            onclick="selectScenario('realistic')" aria-pressed="false">
+                                            Realistic
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" data-scenario="pessimistic"
+                                            onclick="selectScenario('pessimistic')" aria-pressed="false">
+                                            Pessimistic
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="forecastChart" style="height: 300px; position: relative;">
+                                    <!-- Forecast chart will be generated here -->
+                                </div>
+                                <div class="mt-md text-center">
+                                    <span style="font-size: var(--font-size-sm); color: var(--text-muted);"
+                                        id="scenarioDescription">
+                                        Optimistic scenario based on current trends
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Key Metrics Forecast -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Projected Key Metrics</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="keyMetricsForecast">
+                                    <!-- Key metrics forecast will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Monitoring Alerts -->
+                <section class="mb-xl" aria-labelledby="alerts-title">
+                    <h2 id="alerts-title" class="mb-lg">Active Monitoring Alerts</h2>
+                    <div class="grid grid-2">
+                        <!-- Threshold Alerts -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Threshold Alerts</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="thresholdAlerts">
+                                    <!-- Threshold alerts will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trend Alerts -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Trend Alerts</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="trendAlerts">
+                                    <!-- Trend alerts will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Performance Tracking -->
+                <section class="mb-xl" aria-labelledby="performance-title">
+                    <h2 id="performance-title" class="mb-lg">Performance Tracking</h2>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex"
+                                style="align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-md);">
+                                <h3 class="card-title mb-0">Financial Performance Trends</h3>
+                                <select class="form-control" style="width: auto;" id="performancePeriod"
+                                    aria-label="Select performance period">
+                                    <option value="1m">Last Month</option>
+                                    <option value="3m">Last 3 Months</option>
+                                    <option value="6m" selected>Last 6 Months</option>
+                                    <option value="1y">Last Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="performanceChart" style="height: 350px; position: relative;">
+                                <!-- Performance chart will be generated here -->
+                            </div>
+                            <div class="mt-md">
+                                <div class="d-flex"
+                                    style="justify-content: center; gap: var(--space-lg); flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                        <div
+                                            style="width: 12px; height: 12px; background-color: var(--success-color); border-radius: 50%;">
+                                        </div>
+                                        <span style="font-size: var(--font-size-sm);">Revenue</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                        <div
+                                            style="width: 12px; height: 12px; background-color: var(--warning-color); border-radius: 50%;">
+                                        </div>
+                                        <span style="font-size: var(--font-size-sm);">Expenses</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                        <div
+                                            style="width: 12px; height: 12px; background-color: var(--primary-color); border-radius: 50%;">
+                                        </div>
+                                        <span style="font-size: var(--font-size-sm);">Profit/Loss</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Monitoring Settings -->
+                <section aria-labelledby="settings-title">
+                    <h2 id="settings-title" class="mb-lg">Monitoring Configuration</h2>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Alert Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-2" id="monitoringSettings">
+                                <!-- Monitoring settings will be populated here -->
+                            </div>
+                            <div class="mt-lg text-center">
+                                <button class="btn btn-primary" onclick="saveMonitoringSettings()"
+                                    aria-label="Save monitoring settings">
+                                    Save Settings
+                                </button>
+                                <button class="btn btn-secondary" onclick="resetMonitoringSettings()"
+                                    aria-label="Reset to default settings">
+                                    Reset to Defaults
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Error State -->
+            <div id="monitoringErrorState" class="d-none text-center" style="padding: var(--space-2xl) 0;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--danger-color)"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin-bottom: var(--space-lg);" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <h3>Unable to Load Monitoring Data</h3>
+                <p class="mb-lg" style="color: var(--text-secondary);">
+                    We're unable to load monitoring information at this time. This could be because no financial data
+                    has been uploaded yet, or there's a temporary connection issue.
+                </p>
+                <div class="d-flex" style="justify-content: center; gap: var(--space-md);">
+                    <a href="upload.html" class="btn btn-primary">Upload Documents</a>
+                    <button class="btn btn-secondary" onclick="refreshMonitoring()">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Anomaly Detail Modal -->
+    <div id="anomalyDetailModal" class="d-none"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; display: none;"
+        aria-hidden="true" role="dialog" aria-labelledby="anomaly-detail-title">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <div class="card-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+                <div class="d-flex" style="align-items: center; justify-content: space-between;">
+                    <h3 id="anomaly-detail-title" class="card-title mb-0">Anomaly Details</h3>
+                    <button class="btn btn-secondary" onclick="closeAnomalyModal()" aria-label="Close modal"
+                        style="padding: var(--space-sm);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body" id="anomalyDetailContent">
+                <!-- Anomaly detail content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/utils.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <script>
+        (function () {
+            try {
+                var hasUploaded = !!localStorage.getItem('uploaded_graphs');
+                var loading = document.getElementById('monitoringLoadingState');
+                var content = document.getElementById('monitoringContent');
+                var error = document.getElementById('monitoringErrorState');
+
+                if (!hasUploaded) {
+                    // Show static monitoring layout without running heavy analysis
+                    if (loading) loading.classList.add('d-none');
+                    if (error) error.classList.add('d-none');
+                    if (content) content.classList.remove('d-none');
+                } else {
+                    if (loading) loading.classList.remove('d-none');
+                    if (error) error.classList.add('d-none');
+                }
+
+                if (hasUploaded) {
+                    var charts = document.createElement('script');
+                    charts.src = 'js/charts.js';
+                    charts.defer = true;
+                    document.body.appendChild(charts);
+
+                    var monitoring = document.createElement('script');
+                    monitoring.src = 'js/monitoring.js';
+                    monitoring.defer = true;
+                    document.body.appendChild(monitoring);
+                }
+            } catch (e) {
+                // no-op
+            }
+        })();
+    </script>
+</body>
+
+</html>

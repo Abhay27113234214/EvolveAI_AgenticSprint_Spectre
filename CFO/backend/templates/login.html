@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -114,4 +114,86 @@
         </p>
     </div>
 </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Spectre</title>
+    <meta name="description" content="Login to your Spectre account">
+    <link rel="stylesheet" href="css/styles.css?v=3.0">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzIyQzU1RSIvPgo8cGF0aCBkPSJNOCAxNmg0djRIOHYtNHpNMTIgMTJoNHY4aC00di04ek0xNiA4aDR2MTJoLTRWOHpNMjAgMTBoNHY2aC00di02eiIgZmlsbD0id2hpdGUiLz4KPHN2Zz4=">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="Spectre Home">
+                Spectre
+            </a>
+            <div class="navbar-auth">
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary">Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">Welcome Back</h1>
+            <form class="auth-form" id="loginForm" method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="work_email" class="form-label">Email</label>
+                    <input type="email" id="work_email" name="work_email" class="form-control" required
+                        autocomplete="email" placeholder="your@email.com">
+                    <div class="error-message" id="emailError" role="alert"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required
+                        autocomplete="current-password" placeholder="Enter your password">
+                    <div class="error-message" id="passwordError" role="alert"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="job_title" class="form-label">Job Title</label>
+                    <input type="text" id="job_title" name="job_title" class="form-control" required
+                        placeholder="e.g., CFO">
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Login
+                </button>
+
+                <div class="auth-links">
+                    <p>Don't have an account? <a href="{{ url_for('register') }}">Sign up here</a></p>
+                    <p><a href="#" id="forgotPassword">Forgot your password?</a></p>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer
+        style="background-color: var(--bg-secondary); border-top: 1px solid var(--border-color); padding: var(--space-xl) 0;">
+        <div class="container">
+            <div class="text-center">
+                <p style="color: var(--text-muted); margin: 0;">
+                    &copy; 2025 Spectre. Intelligent Financial Management Platform.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/utils.js"></script>
+    <script src="app.js"></script>
+</body>
+
 </html>

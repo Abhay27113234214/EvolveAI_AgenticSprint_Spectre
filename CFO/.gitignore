@@ -9,7 +9,7 @@ __pycache__/
 venv/
 env/
 .venv/
-cfo/
+backend/cfo/
 
 # VS Code settings
 .vscode/
