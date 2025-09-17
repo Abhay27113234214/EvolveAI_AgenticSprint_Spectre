@@ -109,7 +109,3 @@ Troubleshooting
 - Gemini errors: check `GOOGLE_API_KEY`
 - FAISS index not found: upload a PDF or adjust pipeline
 - PowerShell cannot activate venv: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
-
-License
--------
-MIT (or update as needed)
